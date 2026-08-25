@@ -15194,5 +15194,399 @@ body.partner-account #recentClientsBox{display:none!important}
   };
 })();
 </script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style id="sphera-legacy-rx-archive-style">
+#legacyArchivePage,#historyPage{padding-bottom:48px}
+.legacy-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
+.legacy-kpi{display:flex!important;min-width:0!important;min-height:126px;padding:20px!important;flex-direction:column!important;align-items:flex-start!important;justify-content:space-between!important;border:1px solid rgba(228,231,236,.9)!important;border-radius:22px!important;background:rgba(255,255,255,.86)!important;box-shadow:0 18px 50px rgba(16,24,40,.08)!important;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease!important}
+.legacy-kpi:hover{transform:translateY(-2px)!important;border-color:#c7d7ff!important;box-shadow:0 22px 54px rgba(16,24,40,.11)!important}.legacy-kpi:focus-visible{outline:3px solid rgba(22,93,255,.2)!important;outline-offset:3px!important}
+.legacy-kpi.active,.legacy-kpi[aria-pressed="true"]{color:#165dff!important;background:#fff!important;border-color:#165dff!important;box-shadow:0 18px 44px rgba(22,93,255,.22)!important}
+.legacy-kpi-label{color:#667085;font-size:13px}.legacy-kpi-value{margin-top:7px;color:#101828;font-size:30px;font-weight:950;line-height:1}.legacy-kpi.active .legacy-kpi-value,.legacy-kpi.active .legacy-kpi-label{color:#165dff}
+.legacy-kpi-value[aria-busy="true"]{color:#98a2b3!important}
+.legacy-history-card{padding:0!important;overflow:hidden;border-radius:24px!important}
+.legacy-history-head{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px;border-bottom:1px solid #e8edf4}
+.legacy-history-head h2{margin:0 0 5px;font-size:20px}.legacy-history-head .muted{max-width:650px;font-size:12px;line-height:1.5}
+.legacy-import-trigger{flex:0 0 auto;background:#eef2f7!important;border:1px solid #e2e8f0!important;color:#344054!important;box-shadow:none!important}
+.legacy-toolbar{display:grid;grid-template-columns:minmax(0,1fr) 200px auto;gap:10px;align-items:center;padding:14px 18px;background:#fbfcfe;border-bottom:1px solid #e8edf4}
+.legacy-toolbar.history-admin-toolbar{grid-template-columns:minmax(0,1fr) 200px 200px auto}
+.legacy-toolbar input,.legacy-toolbar select{width:100%;height:42px;border-radius:12px}.legacy-toolbar .count-dot{justify-self:end}
+.legacy-archive-scroll{max-height:520px;overflow:auto}.legacy-archive-table{min-width:980px!important;table-layout:fixed!important}
+.legacy-archive-table th,.legacy-archive-table td{padding:12px 10px!important;white-space:normal!important;vertical-align:top!important;line-height:1.35!important}
+.legacy-archive-table th:nth-child(1),.legacy-archive-table td:nth-child(1){width:13%}.legacy-archive-table th:nth-child(2),.legacy-archive-table td:nth-child(2){width:10%}.legacy-archive-table th:nth-child(3),.legacy-archive-table td:nth-child(3){width:23%}.legacy-archive-table th:nth-child(4),.legacy-archive-table td:nth-child(4){width:35%}.legacy-archive-table th:nth-child(5),.legacy-archive-table td:nth-child(5){width:11%}.legacy-archive-table th:nth-child(6),.legacy-archive-table td:nth-child(6){width:8%}
+.legacy-code{font-weight:950;color:#101828}.legacy-product-detail{display:block;margin-top:3px;color:#98a2b3;font-size:10px}.legacy-status{display:inline-flex;padding:5px 9px;border-radius:999px;background:#eef2f6;color:#475467;font-size:10px;font-weight:850}
+.legacy-duplicate-badge{display:block;margin-top:4px;color:#98a2b3;font-size:9px;font-weight:400;line-height:1.25}
+.history-clickable{cursor:pointer;transition:background .16s ease}.history-clickable:hover,.history-clickable:focus{background:#f3f7ff!important;outline:none}.history-clickable:focus{box-shadow:inset 3px 0 #165dff}
+.legacy-empty{padding:30px!important;text-align:center;color:#667085}.legacy-pager{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 18px;color:#667085;font-size:11px;border-top:1px solid #e8edf4}.legacy-pager-controls{display:flex;align-items:center;gap:8px}.legacy-pager button{width:32px;height:32px;border:1px solid #dbe4f0;border-radius:10px;background:#fff;color:#165dff;font-weight:900}.legacy-pager button:disabled{opacity:.35}
+.legacy-import-dialog{max-width:880px!important;text-align:left}.legacy-import-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(250px,.65fr);gap:16px;align-items:start;margin-top:15px}
+.legacy-drop-zone{display:grid;gap:12px;padding:18px;border:1px dashed #a9bdd8;border-radius:16px;background:#f8fbff}.legacy-drop-zone input[type=file]{width:100%;padding:10px;background:#fff;border:1px solid #dbe4f0;border-radius:11px}
+.legacy-import-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.legacy-import-state{min-height:20px;color:#667085;font-size:11px;font-weight:700;line-height:1.45}.legacy-import-state.error{color:#b42318}.legacy-import-state.success{color:#067647}
+.legacy-safety-note{padding:14px;border:1px solid #abefc6;border-radius:14px;background:#ecfdf3;color:#05603a;font-size:11px;line-height:1.55}.legacy-safety-note b{display:block;margin-bottom:5px}.legacy-preview{display:none;margin-top:14px}.legacy-preview.ready{display:block}.legacy-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0}.legacy-summary>div{padding:10px;border:1px solid #e4eaf2;border-radius:12px;background:#f8fafc}.legacy-summary span{display:block;color:#667085;font-size:9px;font-weight:800;text-transform:uppercase}.legacy-summary b{display:block;margin-top:4px;color:#101828;font-size:20px}.legacy-warning-list{display:grid;gap:6px;margin:10px 0}.legacy-warning{padding:8px 10px;border-radius:9px;background:#fffaeb;color:#b54708;font-size:10px;font-weight:750}.legacy-preview-table{min-width:900px!important}.legacy-preview-table th,.legacy-preview-table td{white-space:normal!important;vertical-align:top!important;font-size:11px!important}.legacy-progress{height:8px;margin-top:8px;border-radius:999px;background:#e8eef6;overflow:hidden}.legacy-progress>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#165dff,#22b8cf);transition:width .2s}
+@media(max-width:900px){.legacy-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.legacy-import-grid{grid-template-columns:1fr}.legacy-toolbar{grid-template-columns:1fr 160px auto}.legacy-toolbar.history-admin-toolbar{grid-template-columns:1fr 150px 150px auto}}
+@media(max-width:620px){.legacy-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.legacy-kpi{min-height:100px;padding:14px!important}.legacy-kpi-value{font-size:26px}.legacy-history-head{align-items:flex-start;flex-direction:column}.legacy-import-trigger{width:100%}.legacy-toolbar,.legacy-toolbar.history-admin-toolbar{grid-template-columns:1fr 1fr}.legacy-toolbar input{grid-column:1/-1}.legacy-toolbar .count-dot{justify-self:end}.legacy-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.legacy-archive-scroll{max-height:560px}}
+</style>
+<script id="sphera-legacy-rx-archive-script">
+(function(){
+  'use strict';
+  const COLLECTION='legacyOrders';
+  const BATCH_COLLECTION='legacyImportBatches';
+  const PAGE_SIZE=50;
+  let prepared=null,archiveRows=[],archivePage=1,loadingArchive=false;
+
+  const text=value=>String(value??'').trim();
+  const html=value=>typeof esc==='function'?esc(text(value)):text(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  const headerKey=value=>text(value).toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  const currentAdmin=()=>typeof isAdmin==='function'&&isAdmin();
+  const database=()=>window.SPHERA_DB||null;
+  const serverTime=()=>window.firebase?.firestore?.FieldValue?.serverTimestamp?.()||Date.now();
+  const setState=(message,type='')=>{const node=document.getElementById('legacyImportState');if(node){node.textContent=message;node.className='legacy-import-state '+type}};
+  const setProgress=value=>{const bar=document.querySelector('#legacyImportProgress i');if(bar)bar.style.width=Math.max(0,Math.min(100,Number(value)||0))+'%'};
+
+  function ensureUi(){
+    const menu=document.querySelector('.side .menu');
+    if(menu&&!document.getElementById('menuLegacyArchive')){
+      const button=document.createElement('button');
+      button.id='menuLegacyArchive';button.className='hide';button.dataset.access='admin';button.type='button';
+      button.setAttribute('onclick','SPHERA_openLegacyArchive(this)');
+      button.innerHTML='<span>Istoric RX</span><span>06</span>';
+      menu.appendChild(button)
+    }
+    const main=document.querySelector('.main');
+    if(main&&!document.getElementById('legacyArchivePage')){
+      const section=document.createElement('section');
+      section.id='legacyArchivePage';section.className='page hide';
+      section.innerHTML=`
+        <div class="legacy-archive-layout">
+          <div class="card legacy-import-card">
+            <div class="top"><div><h2 style="margin:0">Import istoric RX</h2><div class="muted">Import separat pentru comenzile realizate înainte de migrarea în SPHERA.</div></div><span class="legacy-readonly-badge">Doar administrator</span></div>
+            <div class="legacy-import-grid">
+              <div class="legacy-drop-zone">
+                <div class="field"><label>Fișier Excel</label><input id="legacyImportFile" type="file" accept=".xlsx,.xls"/></div>
+                <div class="legacy-import-actions"><button class="btn secondary" id="legacyAnalyzeButton" type="button">Validează și previzualizează</button><button class="btn" id="legacyCommitButton" type="button" disabled>Importă în arhivă</button></div>
+                <div class="legacy-import-state" id="legacyImportState">Selectează fișierul Excel. Nicio dată nu este salvată înainte de confirmare.</div>
+                <div class="legacy-progress" id="legacyImportProgress"><i></i></div>
+              </div>
+              <div class="legacy-safety-note"><b>Protecție pentru aplicația activă</b>Datele sunt salvate exclusiv în colecția <code>legacyOrders</code>. Nu sunt adăugate în <code>orders</code>, nu modifică dashboardul, statusurile, termenele, numerotarea sau comenzile partenerilor.</div>
+            </div>
+            <div class="legacy-preview" id="legacyImportPreview"></div>
+          </div>
+          <div class="card legacy-list-card">
+            <div class="top"><div><h2 style="margin:0">Arhivă istorică</h2><div class="muted">Vizualizare fără editare. Datele originale rămân nemodificate.</div></div><button class="icon-btn" id="legacyRefreshButton" type="button" title="Reîncarcă arhiva" aria-label="Reîncarcă arhiva"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0 2 5M20 4v7h-7"></path></svg></button></div>
+            <div class="legacy-toolbar"><input id="legacyArchiveSearch" type="search" placeholder="Caută după cod, centru, client, produs sau detalii"/><span class="pill count-dot" id="legacyArchiveCount">0</span></div>
+            <div class="table-wrap"><table class="legacy-archive-table"><thead><tr><th>Cod</th><th>Centru</th><th>Client</th><th>Produs</th><th>Detalii importate</th><th>Sursă</th></tr></thead><tbody id="legacyArchiveBody"><tr><td colspan="6" class="legacy-empty">Arhiva nu a fost încă încărcată.</td></tr></tbody></table></div>
+            <div class="legacy-pager" id="legacyArchivePager"></div>
+          </div>
+        </div>`;
+      main.appendChild(section);
+      document.getElementById('legacyAnalyzeButton').addEventListener('click',analyzeSelectedFile);
+      document.getElementById('legacyCommitButton').addEventListener('click',confirmImport);
+      document.getElementById('legacyRefreshButton').addEventListener('click',()=>loadArchive(true));
+      document.getElementById('legacyArchiveSearch').addEventListener('input',()=>{archivePage=1;renderArchive()});
+      document.getElementById('legacyImportFile').addEventListener('change',()=>{prepared=null;document.getElementById('legacyCommitButton').disabled=true;document.getElementById('legacyImportPreview').classList.remove('ready');setProgress(0);setState('Fișier selectat. Apasă „Validează și previzualizează”.')})
+    }
+  }
+
+  async function sha256(buffer){
+    if(!crypto?.subtle)throw new Error('Browserul nu poate calcula semnătura fișierului. Actualizează browserul și încearcă din nou.');
+    const digest=await crypto.subtle.digest('SHA-256',buffer);
+    return [...new Uint8Array(digest)].map(value=>value.toString(16).padStart(2,'0')).join('')
+  }
+  function columnIndex(headers,variants){
+    const keys=headers.map(headerKey);
+    return keys.findIndex(key=>variants.some(variant=>key===variant))
+  }
+  function validDayMonth(code){
+    const match=text(code).match(/^(\d{2})(\d{2})/);if(!match)return false;
+    const day=Number(match[1]),month=Number(match[2]);return day>=1&&day<=31&&month>=1&&month<=12
+  }
+  function parseWorkbook(buffer,fileName,fileHash){
+    if(!window.XLSX)throw new Error('Modulul pentru fișiere Excel nu s-a încărcat. Verifică internetul și reîncarcă pagina.');
+    const workbook=XLSX.read(buffer,{type:'array',cellDates:false});
+    const sheetName=workbook.SheetNames[0];if(!sheetName)throw new Error('Fișierul nu conține nicio foaie.');
+    const matrix=XLSX.utils.sheet_to_json(workbook.Sheets[sheetName],{header:1,raw:false,defval:'',blankrows:false});
+    if(matrix.length<2)throw new Error('Fișierul nu conține rânduri de import.');
+    const headers=matrix[0].map(text);
+    const index={
+      code:columnIndex(headers,['cod','code']),center:columnIndex(headers,['centru','center']),client:columnIndex(headers,['client']),product:columnIndex(headers,['produs','product']),
+      od:columnIndex(headers,['od']),os:columnIndex(headers,['os']),add:columnIndex(headers,['add']),patient:columnIndex(headers,['nume pacient','pacient','patient']),details:columnIndex(headers,['mentiuni observatii','mentiuni','observatii','detalii'])
+    };
+    const required=['code','center','client','product'];
+    const missing=required.filter(key=>index[key]<0);if(missing.length)throw new Error('Lipsesc coloanele obligatorii: '+missing.join(', ')+'.');
+    const rows=[];
+    matrix.slice(1).forEach((source,rowOffset)=>{
+      const get=key=>index[key]>=0?text(source[index[key]]):'';
+      const row={legacyCode:get('code'),centerRaw:get('center'),clientNameRaw:get('client'),productRaw:get('product'),odRaw:get('od'),osRaw:get('os'),addRaw:get('add'),patientRaw:get('patient'),detailsRaw:get('details'),sourceRow:rowOffset+2};
+      if(Object.values(row).some(value=>typeof value==='string'&&value))rows.push(row)
+    });
+    if(!rows.length)throw new Error('Nu există rânduri valide pentru previzualizare.');
+    const frequencies=new Map();rows.forEach(row=>frequencies.set(row.legacyCode,(frequencies.get(row.legacyCode)||0)+1));
+    const duplicateCodes=[...frequencies.values()].filter(count=>count>1).length;
+    const duplicateRows=[...frequencies.values()].reduce((sum,count)=>sum+Math.max(0,count-1),0);
+    const uniqueClients=new Set(rows.map(row=>headerKey(row.clientNameRaw)).filter(Boolean)).size;
+    const blankProducts=rows.filter(row=>!row.productRaw).length;
+    const invalidCodes=rows.filter(row=>!validDayMonth(row.legacyCode)).length;
+    return {fileName,fileHash,batchId:'legacy-rx-'+fileHash.slice(0,32),sheetName,rows,stats:{total:rows.length,uniqueClients,duplicateCodes,duplicateRows,blankProducts,invalidCodes}}
+  }
+  function renderPreview(result){
+    const preview=document.getElementById('legacyImportPreview');if(!preview)return;
+    const warnings=[];
+    if(result.stats.duplicateRows)warnings.push(result.stats.duplicateRows+' rânduri suplimentare folosesc un cod repetat. Vor fi păstrate separat, după numărul rândului.');
+    if(result.stats.blankProducts)warnings.push(result.stats.blankProducts+' rânduri nu au produs. Vor fi păstrate exact așa în arhivă.');
+    if(result.stats.invalidCodes)warnings.push(result.stats.invalidCodes+' coduri nu încep cu o zi și o lună valide. Codul brut va fi păstrat fără corectare.');
+    const sample=result.rows.slice(0,12);
+    preview.innerHTML=`<div class="legacy-summary"><div><span>Rânduri</span><b>${result.stats.total}</b></div><div><span>Clienți distincți</span><b>${result.stats.uniqueClients}</b></div><div><span>Coduri repetate</span><b>${result.stats.duplicateCodes}</b></div><div><span>Produse lipsă</span><b>${result.stats.blankProducts}</b></div></div>${warnings.length?'<div class="legacy-warning-list">'+warnings.map(item=>'<div class="legacy-warning">'+html(item)+'</div>').join('')+'</div>':''}<div class="muted" style="margin:12px 0 8px">Previzualizare: primele ${sample.length} rânduri din foaia „${html(result.sheetName)}”.</div><div class="table-wrap"><table class="legacy-preview-table"><thead><tr><th>Rând</th><th>Cod</th><th>Centru</th><th>Client</th><th>Produs</th><th>Detalii</th></tr></thead><tbody>${sample.map(row=>`<tr><td>${row.sourceRow}</td><td><b>${html(row.legacyCode)}</b></td><td>${html(row.centerRaw)}</td><td>${html(row.clientNameRaw)}</td><td>${html(row.productRaw)||'<span class="muted">Lipsă</span>'}</td><td>${html(row.detailsRaw)}</td></tr>`).join('')}</tbody></table></div>`;
+    preview.classList.add('ready')
+  }
+  async function analyzeSelectedFile(){
+    if(!currentAdmin()){setState('Importul este disponibil doar administratorului.','error');return}
+    const file=document.getElementById('legacyImportFile')?.files?.[0];if(!file){setState('Selectează mai întâi fișierul Excel.','error');return}
+    const button=document.getElementById('legacyAnalyzeButton');button.disabled=true;prepared=null;document.getElementById('legacyCommitButton').disabled=true;setProgress(0);setState('Se validează fișierul...');
+    try{const buffer=await file.arrayBuffer(),fileHash=await sha256(buffer);prepared=parseWorkbook(buffer,file.name,fileHash);renderPreview(prepared);document.getElementById('legacyCommitButton').disabled=false;setState('Validarea a trecut. Verifică previzualizarea și confirmă importul.','success')}
+    catch(error){console.error('SPHERA legacy preview',error);setState(error?.message||'Fișierul nu a putut fi citit.','error')}
+    finally{button.disabled=false}
+  }
+  async function importPrepared(){
+    if(!currentAdmin()||!prepared)return;
+    const db=database();if(!db)throw new Error('Conexiunea Firestore nu este disponibilă.');
+    const user=window.SPHERA_AUTH?.currentUser;
+    const batchRef=db.collection(BATCH_COLLECTION).doc(prepared.batchId);
+    const existing=await batchRef.get();
+    if(existing.exists&&existing.data()?.status==='completed')throw new Error('Acest fișier a fost deja importat complet. Importul duplicat a fost blocat.');
+    await batchRef.set({batchId:prepared.batchId,status:'importing',sourceFile:prepared.fileName,sourceSheet:prepared.sheetName,fileHash:prepared.fileHash,rowCount:prepared.rows.length,startedAt:serverTime(),importedBy:currentUser?.name||currentUser?.username||'',importedByUid:user?.uid||''},{merge:true});
+    const chunkSize=350,total=prepared.rows.length;
+    try{
+      for(let start=0;start<total;start+=chunkSize){
+        const batch=db.batch(),chunk=prepared.rows.slice(start,start+chunkSize);
+        chunk.forEach(row=>{
+          const documentId=prepared.fileHash.slice(0,24)+'_'+String(row.sourceRow).padStart(7,'0');
+          batch.set(db.collection(COLLECTION).doc(documentId),{...row,isLegacy:true,sourceFile:prepared.fileName,sourceSheet:prepared.sheetName,fileHash:prepared.fileHash,importBatchId:prepared.batchId,importedAt:serverTime(),importedBy:currentUser?.name||currentUser?.username||'',importedByUid:user?.uid||'',currentClientCode:'',mappingStatus:'unmapped'},{merge:false})
+        });
+        await batch.commit();
+        const completed=Math.min(total,start+chunk.length);setProgress(completed/total*100);setState('Import în curs: '+completed+' din '+total+' rânduri...')
+      }
+      await batchRef.set({status:'completed',completedAt:serverTime(),rowCount:total},{merge:true});
+    }catch(error){try{await batchRef.set({status:'failed',failedAt:serverTime(),errorMessage:text(error?.message).slice(0,300)},{merge:true})}catch(_){}throw error}
+  }
+  function confirmImport(){
+    if(!prepared||!currentAdmin())return;
+    const run=async()=>{const button=document.getElementById('legacyCommitButton');button.disabled=true;document.getElementById('legacyAnalyzeButton').disabled=true;setProgress(0);setState('Se pregătește importul...');try{await importPrepared();setProgress(100);setState('Import finalizat. Arhiva a fost actualizată fără modificarea comenzilor active.','success');prepared=null;document.getElementById('legacyImportFile').value='';await loadArchive(true)}catch(error){console.error('SPHERA legacy import',error);setState(error?.message||'Importul nu a putut fi finalizat. Poți relua în siguranță același fișier.','error');button.disabled=false}finally{document.getElementById('legacyAnalyzeButton').disabled=false}};
+    if(typeof showAppConfirm==='function')showAppConfirm({title:'Confirmă importul istoric',text:'Vor fi adăugate '+prepared.rows.length+' înregistrări numai în arhiva legacyOrders. Comenzile active și indicatorii nu vor fi modificați.',confirmText:'Importă',cancelText:'Anulează',onConfirm:run});else if(confirm('Importi '+prepared.rows.length+' înregistrări în arhiva separată?'))run()
+  }
+  async function loadArchive(force=false){
+    if(!currentAdmin()||loadingArchive)return;if(archiveRows.length&&!force){renderArchive();return}
+    const db=database(),body=document.getElementById('legacyArchiveBody');if(!db){if(body)body.innerHTML='<tr><td colspan="6" class="legacy-empty">Conexiunea Firestore nu este disponibilă.</td></tr>';return}
+    loadingArchive=true;if(body)body.innerHTML='<tr><td colspan="6" class="legacy-empty">Se încarcă arhiva...</td></tr>';
+    try{const snapshot=await db.collection(COLLECTION).limit(5000).get();archiveRows=snapshot.docs.map(doc=>({documentId:doc.id,...doc.data()})).sort((a,b)=>text(a.sourceFile).localeCompare(text(b.sourceFile),'ro')||Number(a.sourceRow||0)-Number(b.sourceRow||0));archivePage=1;renderArchive()}
+    catch(error){console.error('SPHERA legacy archive read',error);if(body)body.innerHTML='<tr><td colspan="6" class="legacy-empty">Arhiva nu a putut fi citită. Verifică drepturile Firestore pentru colecția legacyOrders.</td></tr>'}
+    finally{loadingArchive=false}
+  }
+  function filteredArchive(){
+    const query=headerKey(document.getElementById('legacyArchiveSearch')?.value||'');if(!query)return archiveRows;
+    return archiveRows.filter(row=>headerKey([row.legacyCode,row.centerRaw,row.clientNameRaw,row.productRaw,row.detailsRaw,row.patientRaw].join(' ')).includes(query))
+  }
+  function renderArchive(){
+    const body=document.getElementById('legacyArchiveBody'),counter=document.getElementById('legacyArchiveCount'),pager=document.getElementById('legacyArchivePager');if(!body||!pager)return;
+    const list=filteredArchive(),pages=Math.max(1,Math.ceil(list.length/PAGE_SIZE));archivePage=Math.max(1,Math.min(archivePage,pages));const start=(archivePage-1)*PAGE_SIZE,visible=list.slice(start,start+PAGE_SIZE);
+    if(counter)counter.textContent=String(list.length);
+    body.innerHTML=visible.length?visible.map(row=>`<tr><td><b>${html(row.legacyCode)}</b></td><td>${html(row.centerRaw)}</td><td>${html(row.clientNameRaw)}</td><td>${html(row.productRaw)||'<span class="muted">Lipsă</span>'}</td><td>${html(row.detailsRaw||row.patientRaw)}</td><td><span class="muted">${html(row.sourceFile)} · rând ${Number(row.sourceRow)||''}</span></td></tr>`).join(''):'<tr><td colspan="6" class="legacy-empty">Nu există înregistrări care corespund căutării.</td></tr>';
+    pager.innerHTML=`<span>Afișate ${list.length?start+1:0}-${Math.min(start+PAGE_SIZE,list.length)} din ${list.length}</span><div class="legacy-pager-controls"><button type="button" ${archivePage<=1?'disabled':''} aria-label="Pagina anterioară">‹</button><b>${archivePage} / ${pages}</b><button type="button" ${archivePage>=pages?'disabled':''} aria-label="Pagina următoare">›</button></div>`;
+    const buttons=pager.querySelectorAll('button');buttons[0]?.addEventListener('click',()=>{archivePage--;renderArchive()});buttons[1]?.addEventListener('click',()=>{archivePage++;renderArchive()})
+  }
+  window.SPHERA_openLegacyArchive=function(button){ensureUi();if(!currentAdmin()){if(typeof showPage==='function')showPage('dashboard',document.getElementById('menuDashboard'));return}showPage('legacyArchivePage',button)};
+  const previousShowPage=window.showPage;
+  if(typeof previousShowPage==='function')window.showPage=function(id,button){ensureUi();if(id==='legacyArchivePage'&&!currentAdmin())return previousShowPage.call(this,'dashboard',document.getElementById('menuDashboard'));const result=previousShowPage.apply(this,arguments);if(id==='legacyArchivePage'){const title=document.getElementById('pageTitle');if(title)title.textContent='Istoric RX';loadArchive()}return result};
+  const previousApplyPermissions=window.applyPermissions;
+  if(typeof previousApplyPermissions==='function')window.applyPermissions=function(){const result=previousApplyPermissions.apply(this,arguments);ensureUi();document.getElementById('menuLegacyArchive')?.classList.toggle('hide',!currentAdmin());return result};
+  document.addEventListener('DOMContentLoaded',ensureUi,{once:true});ensureUi()
+})();
+</script>
+<script id="sphera-order-history-v2-script">
+(function(){
+  'use strict';
+  const HISTORY_COLLECTION='legacyOrders';
+  const IMPORT_COLLECTION='legacyImportBatches';
+  const HISTORY_PAGE_SIZE=25;
+  let importDraft=null,historyRows=[],historyPageNumber=1,historyLoading=false,historyCardMode='all',historyLoadedScope='';
+
+  const valueText=value=>String(value??'').trim();
+  const safeHtml=value=>typeof esc==='function'?esc(valueText(value)):valueText(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  const normalized=value=>valueText(value).toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  const centerKey=value=>normalized(value).replace(/^\d+\s*/,'').trim();
+  const role=()=>normalized(currentUser?.role||'');
+  const canUseHistory=()=>!!currentUser&&(typeof window.SPHERA_HAS_PERMISSION==='function'?window.SPHERA_HAS_PERMISSION('pages.history'):['admin','operator','iasi','viewer'].includes(role()));
+  const isHistoryAdmin=()=>['admin','administrator'].includes(role());
+  const isHistoryMaster=()=>['iasi','operator master'].includes(role());
+  const canFilterHistoryCenters=()=>isHistoryAdmin()||isHistoryMaster();
+  const seesAllCenters=()=>['admin','administrator','iasi','operator master'].includes(role());
+  const ownCenter=()=>valueText(currentUser?.center||'');
+  function allowedCenterKeys(){if(seesAllCenters())return null;const key=centerKey(ownCenter());return key?[key]:[]}
+  function currentHistoryScope(){const allowed=allowedCenterKeys();return allowed===null?'all:'+role()+':'+centerKey(ownCenter()):allowed.join('|')}
+  const historyDb=()=>window.SPHERA_DB||null;
+  const cloudTime=()=>window.firebase?.firestore?.FieldValue?.serverTimestamp?.()||Date.now();
+  const isValidCode=code=>{const match=valueText(code).match(/^(\d{2})(\d{2})/);if(!match)return false;const day=Number(match[1]),month=Number(match[2]);return day>=1&&day<=31&&month>=1&&month<=12};
+  const setImportState=(message,type='')=>{const node=document.getElementById('historyImportState');if(node){node.textContent=message;node.className='legacy-import-state '+type}};
+  const setImportProgress=value=>{const node=document.querySelector('#historyImportProgress i');if(node)node.style.width=Math.max(0,Math.min(100,Number(value)||0))+'%'};
+
+  function centerNames(){
+    const map=new Map();
+    (Array.isArray(window.CENTERS)?window.CENTERS:typeof CENTERS!=='undefined'&&Array.isArray(CENTERS)?CENTERS:[]).forEach(item=>{const name=valueText(item?.center||item);const key=centerKey(name);if(key&&!map.has(key))map.set(key,name)});
+    const current=ownCenter();if(current&&!map.has(centerKey(current)))map.set(centerKey(current),current);
+    return [...map.values()].sort((a,b)=>a.localeCompare(b,'ro'))
+  }
+  function centerCodeFor(name,importedBy='',explicitCode=''){
+    const direct=valueText(explicitCode).replace(/\D/g,'');if(direct&&Number(direct)>0)return direct.padStart(2,'0').slice(-2);const importer=normalized(importedBy),users=Array.isArray(window.USERS)?window.USERS:typeof USERS!=='undefined'&&Array.isArray(USERS)?USERS:[],account=users.find(item=>centerKey(item?.center)===centerKey(name)&&importer&&[item?.name,item?.username].some(value=>normalized(value)===importer)),items=(Array.isArray(window.CENTERS)?window.CENTERS:typeof CENTERS!=='undefined'&&Array.isArray(CENTERS)?CENTERS:[]).filter(item=>centerKey(item?.center||item)===centerKey(name)),exact=items.find(item=>importer&&normalized(item?.operator)===importer),match=account||exact||(items.length===1?items[0]:null),code=valueText(match?.operatorCode).replace(/\D/g,'');
+    return code?code.padStart(2,'0').slice(-2):''
+  }
+  function historyCenterLabel(raw,importedBy='',explicitCode=''){
+    const source=valueText(raw),match=source.match(/^(\d{1,2})\s*(?:[-–—.:•]|\s)\s*(.+)$/);if(match)return match[1].padStart(2,'0')+' • '+valueText(match[2]);
+    const code=centerCodeFor(source,importedBy,explicitCode);return code?code+' • '+source:source
+  }
+  function centerOptions(){
+    const select=document.getElementById('historyImportCenter');if(!select)return;
+    const all=seesAllCenters(),current=ownCenter(),allowed=allowedCenterKeys(),names=centerNames().filter(name=>all||allowed.includes(centerKey(name)));
+    select.innerHTML=((all||names.length>1)?'<option value="">Selectează centrul</option>':'')+names.map(name=>`<option value="${safeHtml(name)}" ${names.length===1||centerKey(name)===centerKey(current)?'selected':''}>${safeHtml(name)}</option>`).join('');
+    select.disabled=!all&&names.length===1
+  }
+  function removeOldHistoryUi(){document.getElementById('menuLegacyArchive')?.remove();document.getElementById('legacyArchivePage')?.remove()}
+  function ensureHistoryUi(){
+    removeOldHistoryUi();
+    const menu=document.querySelector('.side .menu');
+    if(menu&&!document.getElementById('menuHistory')){
+      const button=document.createElement('button');button.id='menuHistory';button.type='button';button.className='hide';button.dataset.access='basic';button.setAttribute('onclick','SPHERA_openOrderHistory(this)');button.innerHTML='<span>Istoric comenzi</span><span>04</span>';
+      const anchor=document.getElementById('menuNomenclators')||document.getElementById('menuSettings');anchor?menu.insertBefore(button,anchor):menu.appendChild(button)
+    }
+    const nomenButton=document.getElementById('menuNomenclators'),settingsButton=document.getElementById('menuSettings');if(nomenButton)nomenButton.innerHTML='<span>Nomenclatoare</span>';if(settingsButton)settingsButton.innerHTML='<span>Setări</span>';
+    const main=document.querySelector('.main');
+    if(main&&!document.getElementById('historyPage')){
+      const section=document.createElement('section');section.id='historyPage';section.className='page hide';
+      section.innerHTML=`
+        <div class="legacy-kpis">
+          <button class="card stat-btn legacy-kpi primary active" id="historyCardAll" type="button" onclick="SPHERA_setHistoryCard('all')"><div class="legacy-kpi-label">Comenzi totale în istoric</div><div class="legacy-kpi-value" id="historyKpiOrders" aria-busy="true">…</div></button>
+          <button class="card stat-btn legacy-kpi" id="historyCardClients" type="button" onclick="SPHERA_setHistoryCard('clients')"><div class="legacy-kpi-label">Clienți</div><div class="legacy-kpi-value" id="historyKpiClients" aria-busy="true">…</div></button>
+          <button class="card stat-btn legacy-kpi" id="historyCardCodes" type="button" onclick="SPHERA_setHistoryCard('codes')"><div class="legacy-kpi-label">Coduri distincte</div><div class="legacy-kpi-value" id="historyKpiCodes" aria-busy="true">…</div></button>
+          <button class="card stat-btn legacy-kpi" id="historyCardIssues" type="button" onclick="SPHERA_setHistoryCard('issues')"><div class="legacy-kpi-label">Necesită verificare</div><div class="legacy-kpi-value" id="historyKpiReview" aria-busy="true">…</div></button>
+        </div>
+        <div class="card legacy-history-card">
+          <div class="legacy-history-head"><div><h2>Istoric comenzi</h2><div class="muted">Comenzile realizate înainte de migrarea pe SPHERA. Acestea nu intră în fluxul activ și nu modifică numerotarea globală.</div></div><div class="history-actions"><input id="historyDirectFile" type="file" accept=".xlsx,.xls" style="display:none" onchange="SPHERA_importHistoryFile(this)"/><button class="btn legacy-import-trigger" id="historyImportBtn" type="button" onclick="document.getElementById('historyDirectFile').click()">Importă Excel</button></div></div>
+          <div class="legacy-toolbar"><input id="historySearch" type="search" placeholder="Caută după client, cod sau produs"/><select id="historyCenterFilter" class="hide" aria-label="Filtrează după depozit"><option value="all">Toate depozitele</option></select><select id="historyFilter"><option value="all">Toate comenzile</option><option value="issues">Necesită verificare</option><option value="duplicate">Cod repetat</option></select><span class="pill count-dot" id="historyCount">…</span></div>
+          <div class="legacy-archive-scroll"><table class="legacy-archive-table"><thead><tr><th>Cod RX istoric</th><th>Centru</th><th>Client</th><th>Produs original</th><th>Pacient</th><th>Status</th></tr></thead><tbody id="historyBody"><tr><td colspan="6" class="legacy-empty">Arhiva se încarcă la deschiderea paginii.</td></tr></tbody></table></div>
+          <div class="legacy-pager" id="historyPager"></div>
+        </div>
+        <div class="modal" id="historyImportModal"><div class="wizard legacy-import-dialog"><div class="top"><div><div class="step-title">Importă comenzi istorice</div><div class="muted">Fișierul va fi asociat centrului selectat.</div></div><button class="icon-btn" type="button" onclick="SPHERA_closeHistoryImport()" aria-label="Închide">×</button></div>
+          <div class="legacy-import-grid"><div class="legacy-drop-zone"><div class="field"><label>Centrul arhivei</label><select id="historyImportCenter"></select></div><div class="field"><label>Fișier Excel</label><input id="historyImportFile" type="file" accept=".xlsx,.xls"/></div><div class="legacy-import-actions"><button class="btn secondary" id="historyAnalyzeButton" type="button">Validează și previzualizează</button><button class="btn" id="historyCommitButton" type="button" disabled>Importă în arhivă</button></div><div class="legacy-import-state" id="historyImportState">Selectează fișierul. Nicio dată nu se salvează înainte de confirmare.</div><div class="legacy-progress" id="historyImportProgress"><i></i></div></div><div class="legacy-safety-note"><b>Arhivă separată</b>Importul scrie doar în istoricul centrului selectat. Nu modifică comenzile active, statusurile, termenele sau numerotarea RX.</div></div><div class="legacy-preview" id="historyImportPreview"></div>
+        </div></div>`;
+      main.appendChild(section);
+      document.getElementById('historySearch').addEventListener('input',()=>{historyPageNumber=1;renderHistory()});
+      document.getElementById('historyCenterFilter').addEventListener('change',()=>{historyPageNumber=1;renderHistory()});
+      document.getElementById('historyFilter').addEventListener('change',()=>{historyPageNumber=1;renderHistory()});
+      document.getElementById('historyAnalyzeButton').addEventListener('click',analyzeHistoryFile);
+      document.getElementById('historyCommitButton').addEventListener('click',confirmHistoryImport);
+      document.getElementById('historyImportFile').addEventListener('change',resetHistoryDraft)
+    }
+    const button=document.getElementById('menuHistory');if(button){const visible=canUseHistory();button.classList.toggle('hide',!visible);button.style.setProperty('display',visible?'inline-flex':'none','important')}
+    const centerFilter=document.getElementById('historyCenterFilter'),toolbar=centerFilter?.closest('.legacy-toolbar'),showCenterFilter=canFilterHistoryCenters();if(centerFilter)centerFilter.classList.toggle('hide',!showCenterFilter);if(toolbar)toolbar.classList.toggle('history-admin-toolbar',showCenterFilter)
+  }
+  function resetHistoryDraft(){importDraft=null;const commit=document.getElementById('historyCommitButton'),preview=document.getElementById('historyImportPreview');if(commit)commit.disabled=true;if(preview){preview.classList.remove('ready');preview.innerHTML=''}setImportProgress(0);setImportState('Fișier selectat. Apasă „Validează și previzualizează”.')}
+  window.SPHERA_openHistoryImport=function(){if(!canUseHistory())return;ensureHistoryUi();centerOptions();resetHistoryDraft();document.getElementById('historyImportModal')?.classList.add('open')};
+  window.SPHERA_closeHistoryImport=function(){document.getElementById('historyImportModal')?.classList.remove('open')};
+
+  async function fileHash(buffer){const digest=await crypto.subtle.digest('SHA-256',buffer);return [...new Uint8Array(digest)].map(item=>item.toString(16).padStart(2,'0')).join('')}
+  function headerIndex(headers,names){const keys=headers.map(normalized);return keys.findIndex(key=>names.includes(key))}
+  const normalizedHistoryCode=value=>valueText(value).replace(/\.0$/,'');
+  const atypicalHistoryCode=code=>!/^\d{12}$/.test(normalizedHistoryCode(code));
+  function historyCodeDate(code,year){const raw=normalizedHistoryCode(code),value=raw.length===11?'0'+raw:raw,day=value.slice(0,2),month=value.slice(2,4);if(!/^\d{2}$/.test(day)||!/^\d{2}$/.test(month)||Number(day)<1||Number(day)>31||Number(month)<1||Number(month)>12)return'';return day+'.'+month+'.'+year}
+  function enrichHistoryDates(rows){let year=new Date().getFullYear()-1,previousMonth=0;rows.forEach((row,index)=>{row.legacyCode=normalizedHistoryCode(row.legacyCode);const value=row.legacyCode.length===11?'0'+row.legacyCode:row.legacyCode,month=Number(value.slice(2,4));if(index&&previousMonth>=10&&month<=2)year++;row.dateRaw=historyCodeDate(row.legacyCode,year);if(month>=1&&month<=12)previousMonth=month});return rows}
+  function readHistoryWorkbook(buffer,fileName,hash){
+    if(!window.XLSX)throw new Error('Modulul Excel nu s-a încărcat. Reîncarcă pagina.');
+    const workbook=XLSX.read(buffer,{type:'array',cellDates:false}),sheetName=workbook.SheetNames[0];if(!sheetName)throw new Error('Fișierul nu conține nicio foaie.');
+    const matrix=XLSX.utils.sheet_to_json(workbook.Sheets[sheetName],{header:1,raw:false,defval:'',blankrows:false});if(matrix.length<2)throw new Error('Fișierul nu conține comenzi.');
+    const headers=matrix[0].map(valueText),index={code:headerIndex(headers,['cod','code']),center:headerIndex(headers,['centru','center']),client:headerIndex(headers,['client']),product:headerIndex(headers,['produs','product']),od:headerIndex(headers,['od']),os:headerIndex(headers,['os']),add:headerIndex(headers,['add']),patient:headerIndex(headers,['nume pacient','pacient','patient']),details:headerIndex(headers,['mentiuni observatii','mentiuni','observatii','detalii'])};
+    const missing=['code','client','product'].filter(key=>index[key]<0);if(missing.length)throw new Error('Lipsesc coloanele obligatorii: '+missing.join(', ')+'.');
+    const rows=[];matrix.slice(1).forEach((source,offset)=>{const get=key=>index[key]>=0?valueText(source[index[key]]):'';const row={legacyCode:get('code'),centerRaw:get('center'),clientNameRaw:get('client'),productRaw:get('product'),odRaw:get('od'),osRaw:get('os'),addRaw:get('add'),patientRaw:get('patient'),detailsRaw:get('details'),sourceRow:offset+2};if([row.legacyCode,row.clientNameRaw,row.productRaw,row.detailsRaw].some(Boolean))rows.push(row)});if(!rows.length)throw new Error('Nu există rânduri valide.');enrichHistoryDates(rows);
+    const counts=new Map();rows.forEach(row=>counts.set(row.legacyCode,(counts.get(row.legacyCode)||0)+1));rows.forEach(row=>{row.isDuplicate=(counts.get(row.legacyCode)||0)>1;row.atypicalCode=atypicalHistoryCode(row.legacyCode);row.needsReview=row.isDuplicate||row.atypicalCode});
+    return {fileName,hash,sheetName,rows,stats:{total:rows.length,clients:new Set(rows.map(row=>normalized(row.clientNameRaw)).filter(Boolean)).size,codes:counts.size,duplicates:[...counts.values()].filter(count=>count>1).length,review:rows.filter(row=>row.needsReview).length}}
+  }
+  function selectedImportCenter(){const selected=valueText(document.getElementById('historyImportCenter')?.value);if(seesAllCenters())return selected;const allowed=allowedCenterKeys()||[];return allowed.includes(centerKey(selected))?selected:ownCenter()}
+  function showHistoryPreview(draft){
+    const preview=document.getElementById('historyImportPreview'),sample=draft.rows.slice(0,10);if(!preview)return;
+    preview.innerHTML=`<div class="legacy-summary"><div><span>Comenzi</span><b>${draft.stats.total}</b></div><div><span>Clienți</span><b>${draft.stats.clients}</b></div><div><span>Coduri distincte</span><b>${draft.stats.codes}</b></div><div><span>De verificat</span><b>${draft.stats.review}</b></div></div><div class="muted" style="margin:10px 0 7px">Previzualizare pentru ${safeHtml(draft.archiveCenter)}. Primele ${sample.length} rânduri.</div><div class="table-wrap"><table class="legacy-preview-table"><thead><tr><th>Cod</th><th>Client</th><th>Produs</th><th>Detalii</th></tr></thead><tbody>${sample.map(row=>`<tr><td>${safeHtml(row.legacyCode)}</td><td>${safeHtml(row.clientNameRaw)}</td><td>${safeHtml(row.productRaw)}</td><td>${safeHtml(row.detailsRaw)}</td></tr>`).join('')}</tbody></table></div>`;preview.classList.add('ready')
+  }
+  async function analyzeHistoryFile(){
+    if(!canUseHistory())return;const selectedCenter=selectedImportCenter();if(!selectedCenter){setImportState('Selectează centrul arhivei.','error');return}const file=document.getElementById('historyImportFile')?.files?.[0];if(!file){setImportState('Selectează fișierul Excel.','error');return}
+    const button=document.getElementById('historyAnalyzeButton');button.disabled=true;setImportState('Se validează fișierul...');setImportProgress(0);
+    try{const buffer=await file.arrayBuffer(),hash=await fileHash(buffer);importDraft=readHistoryWorkbook(buffer,file.name,hash);importDraft.archiveCenter=selectedCenter;importDraft.archiveCenterKey=centerKey(selectedCenter);importDraft.batchId='legacy-rx-v3-'+importDraft.archiveCenterKey.slice(0,32)+'-'+hash.slice(0,28);showHistoryPreview(importDraft);document.getElementById('historyCommitButton').disabled=false;setImportState('Validarea a trecut. Confirmă importul.','success')}catch(error){console.error(error);setImportState(error?.message||'Fișierul nu a putut fi citit.','error')}finally{button.disabled=false}
+  }
+  async function saveHistoryImport(){
+    if(!importDraft||!canUseHistory())return;const db=historyDb();if(!db)throw new Error('Conexiunea Firestore nu este disponibilă.');const authUser=window.SPHERA_AUTH?.currentUser,batchRef=db.collection(IMPORT_COLLECTION).doc(importDraft.batchId),existing=await batchRef.get();if(existing.exists&&existing.data()?.status==='completed')throw new Error('Acest fișier a fost deja importat pentru centrul selectat.');
+    const metadata={batchId:importDraft.batchId,status:'importing',archiveCenter:importDraft.archiveCenter,archiveCenterKey:importDraft.archiveCenterKey,sourceFile:importDraft.fileName,sourceSheet:importDraft.sheetName,fileHash:importDraft.hash,rowCount:importDraft.rows.length,startedAt:cloudTime(),importedBy:currentUser?.name||currentUser?.username||'',importedByUid:authUser?.uid||'',importedByOperatorCode:valueText(currentUser?.operatorCode||currentUser?.code).replace(/\D/g,'').padStart(2,'0').slice(-2)};await batchRef.set(metadata,{merge:true});
+    try{const total=importDraft.rows.length;for(let start=0;start<total;start+=350){const batch=db.batch(),chunk=importDraft.rows.slice(start,start+350);chunk.forEach(row=>{const documentId=importDraft.archiveCenterKey.slice(0,28)+'_'+importDraft.hash.slice(0,22)+'_'+String(row.sourceRow).padStart(7,'0');batch.set(db.collection(HISTORY_COLLECTION).doc(documentId),{...row,isLegacy:true,archiveCenter:importDraft.archiveCenter,archiveCenterKey:importDraft.archiveCenterKey,sourceFile:importDraft.fileName,sourceSheet:importDraft.sheetName,fileHash:importDraft.hash,importBatchId:importDraft.batchId,importedAt:cloudTime(),importedBy:metadata.importedBy,importedByUid:metadata.importedByUid,importedByOperatorCode:metadata.importedByOperatorCode,currentClientCode:'',mappingStatus:'unmapped'},{merge:false})});await batch.commit();const done=Math.min(total,start+chunk.length);setImportProgress(done/total*100);setImportState('Import în curs: '+done+' din '+total)}await batchRef.set({status:'completed',completedAt:cloudTime()},{merge:true})}catch(error){try{await batchRef.set({status:'failed',failedAt:cloudTime(),errorMessage:valueText(error?.message).slice(0,300)},{merge:true})}catch(_){}throw error}
+  }
+  function confirmHistoryImport(){
+    if(!importDraft)return;const run=async()=>{const commit=document.getElementById('historyCommitButton');commit.disabled=true;try{await saveHistoryImport();setImportProgress(100);setImportState('Import finalizat pentru '+importDraft.archiveCenter+'.','success');historyRows=[];await loadHistory(true);setTimeout(()=>SPHERA_closeHistoryImport(),500)}catch(error){console.error(error);setImportState(error?.message||'Importul nu a putut fi finalizat.','error');commit.disabled=false}};
+    const message='Importi '+importDraft.rows.length+' comenzi în arhiva centrului '+importDraft.archiveCenter+'?';if(typeof showAppConfirm==='function')showAppConfirm({title:'Confirmă importul istoric',text:message,confirmText:'Importă',cancelText:'Anulează',onConfirm:run});else if(confirm(message))run()
+  }
+  function canonicalCenter(raw){const key=centerKey(raw);return centerNames().find(name=>centerKey(name)===key)||valueText(raw).replace(/^\d+\s*[-–—:]\s*/,'')}
+  function automaticImportCenter(draft){
+    const fileCenters=new Map();draft.rows.forEach(row=>{const key=centerKey(row.centerRaw);if(key&&!fileCenters.has(key))fileCenters.set(key,canonicalCenter(row.centerRaw))});
+    const fromFile=fileCenters.size===1?[...fileCenters.values()][0]:'',allowed=allowedCenterKeys();
+    if(allowed===null)return fromFile||ownCenter();
+    const own=ownCenter(),ownKey=centerKey(own);if(!ownKey)throw new Error('Contul tău nu are un centru asociat.');
+    if(fileCenters.size>1)throw new Error('Fișierul conține comenzi pentru mai multe centre. Încarcă doar lista centrului '+own+'.');
+    if(fromFile&&centerKey(fromFile)!==ownKey)throw new Error('Fișierul aparține centrului '+fromFile+'. Contul tău poate importa doar pentru '+own+'.');
+    return own
+  }
+  window.SPHERA_importHistoryFile=async function(input){
+    const file=input?.files?.[0],button=document.getElementById('historyImportBtn');if(!file)return;if(button){button.disabled=true;button.textContent='Se verifică...'}
+    try{
+      const buffer=await file.arrayBuffer(),hash=await fileHash(buffer),draft=readHistoryWorkbook(buffer,file.name,hash),archiveCenter=automaticImportCenter(draft);if(!archiveCenter)throw new Error('Centrul fișierului nu poate fi asociat contului tău.');
+      draft.archiveCenter=archiveCenter;draft.archiveCenterKey=centerKey(archiveCenter);draft.batchId='legacy-rx-v4-'+draft.archiveCenterKey.slice(0,32)+'-'+hash.slice(0,28);importDraft=draft;
+      const run=async()=>{if(button){button.disabled=true;button.textContent='Se importă...'}try{await saveHistoryImport();historyRows=[];await loadHistory(true);if(typeof showAppConfirm==='function')showAppConfirm({title:'Import finalizat',text:draft.rows.length.toLocaleString('ro-RO')+' comenzi au fost adăugate în istoricul centrului '+archiveCenter+'.',confirmText:'OK'})}catch(error){console.error(error);if(typeof showAppConfirm==='function')showAppConfirm({title:'Import nereușit',text:error?.message||'Fișierul nu a putut fi importat.',confirmText:'OK'})}finally{if(button){button.disabled=false;button.textContent='Importă Excel'}}};
+      const message='Au fost identificate '+draft.rows.length.toLocaleString('ro-RO')+' comenzi pentru centrul '+archiveCenter+'. Continui importul?';if(typeof showAppConfirm==='function')showAppConfirm({title:'Import comenzi istorice',text:message,confirmText:'Importă',cancelText:'Anulează',onConfirm:run});else if(confirm(message))await run()
+    }catch(error){console.error(error);if(typeof showAppConfirm==='function')showAppConfirm({title:'Import nereușit',text:error?.message||'Fișierul nu a putut fi citit.',confirmText:'OK'});else alert(error?.message||'Fișierul nu a putut fi citit.')}
+    finally{input.value='';if(button&&button.textContent!=='Se importă...'){button.disabled=false;button.textContent='Importă Excel'}}
+  };
+  function rowCenter(row){
+    const original=valueText(row.centerRaw),fallback=valueText(row.archiveCenter||row.ownerCenter),source=original||fallback;
+    return historyCenterLabel(source,row.importedBy||row.importedByName||'',row.importedByOperatorCode||'')
+  }
+  function rowArchiveCenterKey(row){return centerKey(row.archiveCenterKey||row.archiveCenter||row.ownerCenter||row.centerRaw)}
+  function scopedRows(rows){const allowed=allowedCenterKeys();if(allowed===null)return rows;return rows.filter(row=>allowed.includes(rowArchiveCenterKey(row)))}
+  function selectedHistoryCenterKey(){if(!canFilterHistoryCenters())return'all';return valueText(document.getElementById('historyCenterFilter')?.value)||'all'}
+  function centerFilteredRows(rows=historyRows){const scoped=scopedRows(rows),selected=selectedHistoryCenterKey();return selected==='all'?scoped:scoped.filter(row=>rowArchiveCenterKey(row)===selected)}
+  function populateHistoryCenterFilter(){
+    const select=document.getElementById('historyCenterFilter');if(!select||!canFilterHistoryCenters())return;const previous=valueText(select.value)||'all',centers=new Map();scopedRows(historyRows).forEach(row=>{const key=rowArchiveCenterKey(row);if(key&&!centers.has(key))centers.set(key,rowCenter(row)||key)});const options=[...centers].sort((a,b)=>a[1].localeCompare(b[1],'ro',{numeric:true})),preferred=isHistoryMaster()?centerKey(ownCenter()):'all',target=select.dataset.initialized==='true'?previous:preferred;select.innerHTML='<option value="all">Toate depozitele</option>'+options.map(([key,label])=>`<option value="${safeHtml(key)}">${safeHtml(label)}</option>`).join('');select.value=target==='all'||centers.has(target)?target:'all';select.dataset.initialized='true'
+  }
+  function setHistoryKpisLoading(){['historyKpiOrders','historyKpiClients','historyKpiCodes','historyKpiReview'].forEach(id=>{const node=document.getElementById(id);if(node){node.textContent='…';node.setAttribute('aria-busy','true')}});const count=document.getElementById('historyCount');if(count)count.textContent='…'}
+  function duplicateCodes(rows){const counts=new Map();rows.forEach(row=>counts.set(valueText(row.legacyCode),(counts.get(valueText(row.legacyCode))||0)+1));return new Set([...counts].filter(([,count])=>count>1).map(([code])=>code))}
+  function uniqueHistoryRows(rows,keyFn){const seen=new Set();return rows.filter(row=>{const key=normalized(keyFn(row));if(!key||seen.has(key))return false;seen.add(key);return true})}
+  function sortHistoryByCenter(rows){return [...rows].sort((a,b)=>rowCenter(a).localeCompare(rowCenter(b),'ro',{numeric:true,sensitivity:'base'})||Number(a.sourceRow||0)-Number(b.sourceRow||0)||valueText(a.legacyCode).localeCompare(valueText(b.legacyCode),'ro',{numeric:true}))}
+  function historyStats(rows){const duplicates=duplicateCodes(rows),review=rows.filter(row=>duplicates.has(valueText(row.legacyCode))||atypicalHistoryCode(row.legacyCode)).length;return {orders:rows.length,clients:new Set(rows.map(row=>normalized(row.clientNameRaw)).filter(Boolean)).size,codes:new Set(rows.map(row=>valueText(row.legacyCode)).filter(Boolean)).size,review}}
+  function updateHistoryKpis(){const stats=historyStats(centerFilteredRows());[['historyKpiOrders',stats.orders],['historyKpiClients',stats.clients],['historyKpiCodes',stats.codes],['historyKpiReview',stats.review]].forEach(([id,value])=>{const node=document.getElementById(id);if(node){node.textContent=Number(value).toLocaleString('ro-RO');node.removeAttribute('aria-busy')}})}
+  window.SPHERA_setHistoryCard=function(mode){historyCardMode=['all','clients','codes','issues'].includes(mode)?mode:'all';const cards={all:'historyCardAll',clients:'historyCardClients',codes:'historyCardCodes',issues:'historyCardIssues'};Object.entries(cards).forEach(([key,id])=>{const card=document.getElementById(id);if(card){const active=key===historyCardMode;card.classList.toggle('active',active);card.classList.toggle('primary',active);card.setAttribute('aria-pressed',String(active))}});historyPageNumber=1;renderHistory()};
+  function filteredHistory(){
+    const scoped=centerFilteredRows(),query=normalized(document.getElementById('historySearch')?.value||''),mode=document.getElementById('historyFilter')?.value||'all',duplicates=duplicateCodes(scoped);
+    let rows=sortHistoryByCenter(scoped.filter(row=>{const issue=duplicates.has(valueText(row.legacyCode))||atypicalHistoryCode(row.legacyCode);if(query&&!normalized([row.legacyCode,row.clientNameRaw,row.productRaw,row.detailsRaw,row.patientRaw,rowCenter(row)].join(' ')).includes(query))return false;if(mode==='duplicate'&&!duplicates.has(valueText(row.legacyCode)))return false;if(mode==='issues'&&!issue)return false;if(historyCardMode==='issues'&&!issue)return false;return true}));
+    if(historyCardMode==='clients')rows=uniqueHistoryRows(rows,row=>row.clientNameRaw);if(historyCardMode==='codes')rows=uniqueHistoryRows(rows,row=>row.legacyCode);return rows
+  }
+  window.SPHERA_showHistoricalOrderDetails=function(encodedId){const id=decodeURIComponent(valueText(encodedId)),row=scopedRows(historyRows).find(item=>String(item.documentId)===id);if(!row)return;document.querySelector('.history-order-modal')?.remove();const lines=[['Data estimată',row.dateRaw||'Nedisponibil'],['Centru',rowCenter(row)||'Nedisponibil'],['Client',row.clientNameRaw||'Nedisponibil'],['Produs original',row.productRaw||'Nedisponibil'],['OD',row.odRaw||'Nedisponibil'],['OS',row.osRaw||'Nedisponibil'],['ADD',row.addRaw||'Nedisponibil'],['Nume pacient',row.patientRaw||'Nedisponibil'],['Mențiuni',row.detailsRaw||'Fără mențiuni'],['Status','Arhivată'],['Sursă',row.sourceFile||'Import sistem anterior']];const modal=document.createElement('div');modal.className='modal open history-order-modal';modal.innerHTML=`<div class="wizard" style="max-width:720px"><div class="top"><div><div class="muted">Detalii comandă istorică</div><div class="step-title">${safeHtml(row.legacyCode)}</div></div><button class="btn ghost history-modal-close" type="button">Închide</button></div><div class="detail-grid">${lines.map(([label,value])=>`<div class="muted">${safeHtml(label)}</div><div><b>${safeHtml(value)}</b></div>`).join('')}</div></div>`;document.body.appendChild(modal);modal.querySelector('.history-modal-close').onclick=()=>modal.remove();modal.addEventListener('mousedown',event=>{if(event.target===modal)modal.remove()})};
+  function renderHistory(){
+    const body=document.getElementById('historyBody'),pager=document.getElementById('historyPager'),count=document.getElementById('historyCount');if(!body||!pager)return;updateHistoryKpis();const list=filteredHistory(),duplicates=duplicateCodes(centerFilteredRows()),pages=Math.max(1,Math.ceil(list.length/HISTORY_PAGE_SIZE));historyPageNumber=Math.max(1,Math.min(historyPageNumber,pages));const start=(historyPageNumber-1)*HISTORY_PAGE_SIZE,visible=list.slice(start,start+HISTORY_PAGE_SIZE);if(count)count.textContent=list.length.toLocaleString('ro-RO');
+    body.innerHTML=visible.length?visible.map(row=>{const encoded=safeHtml(encodeURIComponent(row.documentId));return `<tr class="history-clickable" tabindex="0" role="button" onclick="SPHERA_showHistoricalOrderDetails('${encoded}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();SPHERA_showHistoricalOrderDetails('${encoded}')}"><td><span class="legacy-code">${safeHtml(row.legacyCode)}</span>${duplicates.has(valueText(row.legacyCode))?'<span class="legacy-duplicate-badge">Cod Repetat</span>':atypicalHistoryCode(row.legacyCode)?'<span class="legacy-duplicate-badge">Cod atipic</span>':''}</td><td>${safeHtml(rowCenter(row))}</td><td>${safeHtml(row.clientNameRaw)}</td><td>${safeHtml(row.productRaw)||'<span class="muted">Produs lipsă</span>'}${valueText(row.detailsRaw)?'<span class="legacy-product-detail">'+safeHtml(row.detailsRaw)+'</span>':''}</td><td>${safeHtml(row.patientRaw)}</td><td><span class="legacy-status">Arhivată</span></td></tr>`}).join(''):'<tr><td colspan="6" class="legacy-empty">Nu există comenzi istorice pentru filtrul selectat.</td></tr>';
+    pager.innerHTML=`<span>Afișate ${list.length?start+1:0}-${Math.min(start+HISTORY_PAGE_SIZE,list.length)} din ${list.length}</span><div class="legacy-pager-controls"><button type="button" ${historyPageNumber<=1?'disabled':''}>‹</button><b>${historyPageNumber} / ${pages}</b><button type="button" ${historyPageNumber>=pages?'disabled':''}>›</button></div>`;const buttons=pager.querySelectorAll('button');buttons[0]?.addEventListener('click',()=>{historyPageNumber--;renderHistory()});buttons[1]?.addEventListener('click',()=>{historyPageNumber++;renderHistory()})
+  }
+  async function fetchAllHistoryDocuments(query){
+    const documentId=window.firebase?.firestore?.FieldPath?.documentId?.();if(!documentId)return(await query.get()).docs;const documents=[];let cursor=null;
+    while(true){let page=query.orderBy(documentId).limit(1000);if(cursor)page=page.startAfter(cursor);const snapshot=await page.get();documents.push(...snapshot.docs);if(snapshot.docs.length<1000)break;cursor=snapshot.docs[snapshot.docs.length-1]}
+    return documents
+  }
+  async function loadHistory(force=false){
+    if(!canUseHistory()||historyLoading)return;const scope=currentHistoryScope();if(historyLoadedScope!==scope){historyRows=[];historyPageNumber=1;historyLoadedScope=scope;const centerFilter=document.getElementById('historyCenterFilter');if(centerFilter){centerFilter.value='all';delete centerFilter.dataset.initialized}}if(historyRows.length&&!force){populateHistoryCenterFilter();renderHistory();return}const db=historyDb(),body=document.getElementById('historyBody');if(!db){if(body)body.innerHTML='<tr><td colspan="6" class="legacy-empty">Conexiunea Firestore nu este disponibilă.</td></tr>';return}historyLoading=true;setHistoryKpisLoading();if(body)body.innerHTML='<tr><td colspan="6" class="legacy-empty">Se încarcă istoricul...</td></tr>';
+    try{const collection=db.collection(HISTORY_COLLECTION),allowed=allowedCenterKeys();let documents=[];if(allowed===null){documents=await fetchAllHistoryDocuments(collection)}else{if(!allowed.length)throw new Error('Contul nu are un centru asociat.');for(const key of allowed)documents.push(...await fetchAllHistoryDocuments(collection.where('archiveCenterKey','==',key)))}const uniqueDocuments=new Map(documents.map(doc=>[doc.id,doc]));historyRows=scopedRows([...uniqueDocuments.values()].map(doc=>({documentId:doc.id,...doc.data()}))).sort((a,b)=>Number(a.sourceRow||0)-Number(b.sourceRow||0));historyLoadedScope=scope;historyPageNumber=1;populateHistoryCenterFilter();renderHistory()}catch(error){console.error(error);historyRows=[];setHistoryKpisLoading();if(body)body.innerHTML='<tr><td colspan="6" class="legacy-empty">Istoricul nu a putut fi încărcat pentru centrul tău.</td></tr>'}finally{historyLoading=false}
+  }
+  window.SPHERA_openOrderHistory=function(button){ensureHistoryUi();if(!canUseHistory())return;if(isHistoryMaster()){const centerFilter=document.getElementById('historyCenterFilter');if(centerFilter){centerFilter.value='all';delete centerFilter.dataset.initialized}}if(typeof showPage==='function')showPage('historyPage',button)};
+  const earlierShowPage=window.showPage;if(typeof earlierShowPage==='function')window.showPage=function(id,button){ensureHistoryUi();const result=earlierShowPage.apply(this,arguments);removeOldHistoryUi();if(id==='historyPage'&&canUseHistory()){const title=document.getElementById('pageTitle');if(title)title.textContent='Istoric comenzi';loadHistory()}return result};
+  const earlierApplyPermissions=window.applyPermissions;if(typeof earlierApplyPermissions==='function')window.applyPermissions=function(){const result=earlierApplyPermissions.apply(this,arguments);ensureHistoryUi();return result};
+  document.addEventListener('DOMContentLoaded',ensureHistoryUi,{once:true});ensureHistoryUi()
+})();
+</script>
 </body>
 </html>
