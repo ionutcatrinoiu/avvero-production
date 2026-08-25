@@ -5441,14 +5441,17 @@ cursor:pointer;
     }
     legacyOrdersLoadPromise=(async()=>{
       try{
-        const [sharedSnapshot,deletedSnapshot]=await Promise.all([
-          SHARED_REF.get(),
-          DELETED_ORDERS_COL.get()
-        ]);
+        /* Istoricul activ este sursa esențială. O eroare pe arhiva auxiliară de
+           ștergeri nu trebuie să golească comenzile vizibile și nici să blocheze
+           reîncercările ulterioare. */
+        const sharedSnapshot=await SHARED_REF.get();
+        let deletedSnapshot=null;
+        try{deletedSnapshot=await DELETED_ORDERS_COL.get()}
+        catch(error){console.warn('SPHERA deleted orders archive read',error)}
         const shared=sharedSnapshot.exists?(sharedSnapshot.data()||{}):{};
         const legacy=Array.isArray(shared.orders)?shared.orders:[];
         const deletedIds=new Set();
-        deletedSnapshot.docs.forEach(doc=>{
+        (deletedSnapshot?.docs||[]).forEach(doc=>{
           const data=doc.data()||{},id=String(data.orderId||data.order?.id||'');
           if(id)deletedIds.add(id)
         });
@@ -5465,37 +5468,46 @@ cursor:pointer;
           if(id&&!deletedIds.has(id)&&!safeById.has(id))safeById.set(id,order)
         });
         legacyOrdersForRead=[...safeById.values()];
+        /* De acum lista legacy este sigură pentru afișare, chiar dacă migrarea
+           documentelor individuale nu este permisă de reguli. */
+        legacyOrdersLoaded=true;
         const cloudIds=new Set((Array.isArray(cloudList)?cloudList:[]).map(order=>String(order?.id||'')).filter(Boolean));
         const missing=legacyOrdersForRead.filter(order=>!cloudIds.has(String(order.id)));
         if(!missing.length)return;
-        let batch=db.batch(),operations=0;
-        const commit=async()=>{
-          if(!operations)return;
-          await batch.commit();
-          batch=db.batch();operations=0
-        };
-        for(const order of missing){
-          batch.set(ORDERS_COL.doc(orderDocId(order)),{
-            ...order,
-            _cloudUpdatedAt:firebase.firestore.FieldValue.serverTimestamp(),
-            _cloudUpdatedBy:auth.currentUser?.uid||'',
-            _legacyMigrated:true
-          },{merge:false});
-          operations++;
-          if(operations>=400)await commit()
+        try{
+          let batch=db.batch(),operations=0;
+          const commit=async()=>{
+            if(!operations)return;
+            await batch.commit();
+            batch=db.batch();operations=0
+          };
+          for(const order of missing){
+            batch.set(ORDERS_COL.doc(orderDocId(order)),{
+              ...order,
+              _cloudUpdatedAt:firebase.firestore.FieldValue.serverTimestamp(),
+              _cloudUpdatedBy:auth.currentUser?.uid||'',
+              _legacyMigrated:true
+            },{merge:false});
+            operations++;
+            if(operations>=400)await commit()
+          }
+          await commit();
+          await ORDERS_STATE_REF.set({
+            initialized:true,
+            legacyMigrationCompleted:true,
+            legacyMigrationCount:missing.length,
+            legacyMigrationAt:firebase.firestore.FieldValue.serverTimestamp()
+          },{merge:true})
+        }catch(error){
+          console.warn('SPHERA legacy orders background migration',error);
+          setCloudStatus('Cloud: istoricul este afișat, migrarea va fi reluată','wait')
         }
-        await commit();
-        await ORDERS_STATE_REF.set({
-          initialized:true,
-          legacyMigrationCompleted:true,
-          legacyMigrationCount:missing.length,
-          legacyMigrationAt:firebase.firestore.FieldValue.serverTimestamp()
-        },{merge:true})
       }catch(error){
         console.error('SPHERA legacy orders migration error',error);
-        setCloudStatus('Cloud: istoricul este afișat, migrarea va fi reluată','wait')
+        legacyOrdersLoaded=false;
+        setCloudStatus('Cloud: datele locale sunt păstrate, citirea va fi reluată','wait')
       }finally{
-        legacyOrdersLoaded=true
+        legacyOrdersLoadPromise=null
       }
     })();
     await legacyOrdersLoadPromise;
@@ -5826,6 +5838,7 @@ cursor:pointer;
     }
 
     unsubscribeOrders=ORDERS_COL.onSnapshot(async snap=>{
+      const previouslyVisible=Array.isArray(orders)?orders.slice():[];
       let list=readSnapshot(snap);
       list=await ensureLegacyOrdersAvailable(list);
       if(snap.empty&&!list.length&&!ordersInitializing&&!ordersReady){
@@ -5834,6 +5847,18 @@ cursor:pointer;
         ordersInitializing=false;
         if(ordersPendingSave)scheduleOrdersSave();
         return;
+      }
+      /* Protecție contra regresiei „1000 -> zeci”: un snapshot parțial primit
+         după o ștergere nu are voie să înlocuiască lista completă. Comanda
+         ștearsă rămâne exclusă prin tombstone/deletedOrders. */
+      if(fullOrderVisibility&&previouslyVisible.length>list.length+20&&list.length<Math.floor(previouslyVisible.length*.8)){
+        const preserved=new Map(list.filter(order=>!isOrderSuppressedByDeletion(order?.id)).map(order=>[String(order.id||''),order]));
+        previouslyVisible.forEach(order=>{
+          const id=String(order?.id||'');
+          if(id&&!preserved.has(id)&&!isOrderSuppressedByDeletion(id))preserved.set(id,order)
+        });
+        list=[...preserved.values()];
+        console.warn('SPHERA incomplete orders snapshot ignored',{cloud:snap.size,preserved:list.length})
       }
       const cloudChanges=snapshotChanges(snap);
       applyOrdersFromCloud(list,cloudChanges);
@@ -15229,6 +15254,8 @@ body.partner-account #recentClientsBox{display:none!important}
 .legacy-duplicate-badge{display:block;margin-top:4px;color:#98a2b3;font-size:9px;font-weight:400;line-height:1.25}
 .history-clickable{cursor:pointer;transition:background .16s ease}.history-clickable:hover,.history-clickable:focus{background:#f3f7ff!important;outline:none}.history-clickable:focus{box-shadow:inset 3px 0 #165dff}
 .legacy-empty{padding:30px!important;text-align:center;color:#667085}.legacy-pager{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 18px;color:#667085;font-size:11px;border-top:1px solid #e8edf4}.legacy-pager-controls{display:flex;align-items:center;gap:8px}.legacy-pager button{width:32px;height:32px;border:1px solid #dbe4f0;border-radius:10px;background:#fff;color:#165dff;font-weight:900}.legacy-pager button:disabled{opacity:.35}
+.history-loading-state{min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#667085;font-weight:750}
+.history-loading-state .order-creation-spinner{width:58px;height:58px}
 .legacy-import-dialog{max-width:880px!important;text-align:left}.legacy-import-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(250px,.65fr);gap:16px;align-items:start;margin-top:15px}
 .legacy-drop-zone{display:grid;gap:12px;padding:18px;border:1px dashed #a9bdd8;border-radius:16px;background:#f8fbff}.legacy-drop-zone input[type=file]{width:100%;padding:10px;background:#fff;border:1px solid #dbe4f0;border-radius:11px}
 .legacy-import-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.legacy-import-state{min-height:20px;color:#667085;font-size:11px;font-weight:700;line-height:1.45}.legacy-import-state.error{color:#b42318}.legacy-import-state.success{color:#067647}
@@ -15420,7 +15447,7 @@ body.partner-account #recentClientsBox{display:none!important}
   const HISTORY_CACHE_DB='sphera-history-cache-v1';
   const HISTORY_CACHE_STORE='scopes';
   const HISTORY_CACHE_TTL=30*60*1000;
-  let importDraft=null,historyRows=[],historyPageNumber=1,historyLoading=false,historyCardMode='all',historyLoadedScope='',historyLoadGeneration=0,historyDirectoryLoaded=false;
+  let importDraft=null,historyRows=[],historyPageNumber=1,historyLoading=false,historyCardMode='all',historyLoadedScope='',historyLoadGeneration=0,historyDirectoryLoaded=false,historyStartTimer=0;
   const historyCenterDirectory=new Map();
   const historyScopeCache=new Map();
 
@@ -15593,6 +15620,7 @@ body.partner-account #recentClientsBox{display:none!important}
   function populateHistoryCenterFilter(){
     const select=document.getElementById('historyCenterFilter');if(!select||!canFilterHistoryCenters())return;const previous=valueText(select.value)||'all',centers=new Map(historyCenterDirectory),ownKey=centerKey(ownCenter());if(ownKey&&!centers.has(ownKey))centers.set(ownKey,historyCenterLabel(ownCenter(),currentUser?.name||currentUser?.username||'',currentUser?.operatorCode||currentUser?.code||''));scopedRows(historyRows).forEach(row=>{const key=rowArchiveCenterKey(row);if(key&&!centers.has(key))centers.set(key,rowCenter(row)||key)});const options=[...centers].sort((a,b)=>a[1].localeCompare(b[1],'ro',{numeric:true})),preferred=isHistoryAdmin()?'all':ownKey||'all',target=select.dataset.initialized==='true'?previous:preferred;select.innerHTML='<option value="all">Toate depozitele</option>'+options.map(([key,label])=>`<option value="${safeHtml(key)}">${safeHtml(label)}</option>`).join('');select.value=target==='all'||centers.has(target)?target:'all';select.dataset.initialized='true'
   }
+  function historyLoadingMarkup(){return '<div class="history-loading-state" role="status" aria-live="polite"><span class="order-creation-spinner" aria-hidden="true"></span><span>Se încarcă istoricul...</span></div>'}
   function setHistoryKpisLoading(){['historyKpiOrders','historyKpiClients','historyKpiCodes','historyKpiReview'].forEach(id=>{const node=document.getElementById(id);if(node){node.textContent='…';node.setAttribute('aria-busy','true')}});const count=document.getElementById('historyCount');if(count)count.textContent='…'}
   function duplicateCodes(rows){const counts=new Map();rows.forEach(row=>counts.set(valueText(row.legacyCode),(counts.get(valueText(row.legacyCode))||0)+1));return new Set([...counts].filter(([,count])=>count>1).map(([code])=>code))}
   function uniqueHistoryRows(rows,keyFn){const seen=new Set();return rows.filter(row=>{const key=normalized(keyFn(row));if(!key||seen.has(key))return false;seen.add(key);return true})}
@@ -15607,13 +15635,14 @@ body.partner-account #recentClientsBox{display:none!important}
   }
   window.SPHERA_showHistoricalOrderDetails=function(encodedId){const id=decodeURIComponent(valueText(encodedId)),row=scopedRows(historyRows).find(item=>String(item.documentId)===id);if(!row)return;document.querySelector('.history-order-modal')?.remove();const lines=[['Data estimată',row.dateRaw||'Nedisponibil'],['Centru',rowCenter(row)||'Nedisponibil'],['Client',row.clientNameRaw||'Nedisponibil'],['Produs original',row.productRaw||'Nedisponibil'],['OD',row.odRaw||'Nedisponibil'],['OS',row.osRaw||'Nedisponibil'],['ADD',row.addRaw||'Nedisponibil'],['Nume pacient',row.patientRaw||'Nedisponibil'],['Mențiuni',row.detailsRaw||'Fără mențiuni'],['Status','Arhivată'],['Sursă',row.sourceFile||'Import sistem anterior']];const modal=document.createElement('div');modal.className='modal open history-order-modal';modal.innerHTML=`<div class="wizard" style="max-width:720px"><div class="top"><div><div class="muted">Detalii comandă istorică</div><div class="step-title">${safeHtml(row.legacyCode)}</div></div><button class="btn ghost history-modal-close" type="button">Închide</button></div><div class="detail-grid">${lines.map(([label,value])=>`<div class="muted">${safeHtml(label)}</div><div><b>${safeHtml(value)}</b></div>`).join('')}</div></div>`;document.body.appendChild(modal);modal.querySelector('.history-modal-close').onclick=()=>modal.remove();modal.addEventListener('mousedown',event=>{if(event.target===modal)modal.remove()})};
   function renderHistory(){
+    if(document.getElementById('historyPage')?.classList.contains('hide'))return;
     const body=document.getElementById('historyBody'),pager=document.getElementById('historyPager'),count=document.getElementById('historyCount');if(!body||!pager)return;updateHistoryKpis();const list=filteredHistory(),duplicates=duplicateCodes(centerFilteredRows()),pages=Math.max(1,Math.ceil(list.length/HISTORY_PAGE_SIZE));historyPageNumber=Math.max(1,Math.min(historyPageNumber,pages));const start=(historyPageNumber-1)*HISTORY_PAGE_SIZE,visible=list.slice(start,start+HISTORY_PAGE_SIZE);if(count)count.textContent=list.length.toLocaleString('ro-RO');
     body.innerHTML=visible.length?visible.map(row=>{const encoded=safeHtml(encodeURIComponent(row.documentId));return `<tr class="history-clickable" tabindex="0" role="button" onclick="SPHERA_showHistoricalOrderDetails('${encoded}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();SPHERA_showHistoricalOrderDetails('${encoded}')}"><td><span class="legacy-code">${safeHtml(row.legacyCode)}</span>${duplicates.has(valueText(row.legacyCode))?'<span class="legacy-duplicate-badge">Cod Repetat</span>':atypicalHistoryCode(row.legacyCode)?'<span class="legacy-duplicate-badge">Cod atipic</span>':''}</td><td>${safeHtml(rowCenter(row))}</td><td>${safeHtml(row.clientNameRaw)}</td><td>${safeHtml(row.productRaw)||'<span class="muted">Produs lipsă</span>'}${valueText(row.detailsRaw)?'<span class="legacy-product-detail">'+safeHtml(row.detailsRaw)+'</span>':''}</td><td>${safeHtml(row.patientRaw)}</td><td><span class="legacy-status">Arhivată</span></td></tr>`}).join(''):'<tr><td colspan="6" class="legacy-empty">Nu există comenzi istorice pentru filtrul selectat.</td></tr>';
     pager.innerHTML=`<span>Afișate ${list.length?start+1:0}-${Math.min(start+HISTORY_PAGE_SIZE,list.length)} din ${list.length}</span><div class="legacy-pager-controls"><button type="button" ${historyPageNumber<=1?'disabled':''}>‹</button><b>${historyPageNumber} / ${pages}</b><button type="button" ${historyPageNumber>=pages?'disabled':''}>›</button></div>`;const buttons=pager.querySelectorAll('button');buttons[0]?.addEventListener('click',()=>{historyPageNumber--;renderHistory()});buttons[1]?.addEventListener('click',()=>{historyPageNumber++;renderHistory()})
   }
   async function fetchAllHistoryDocuments(query,generation){
-    const documentId=window.firebase?.firestore?.FieldPath?.documentId?.();if(!documentId)return(await query.get()).docs;const documents=[];let cursor=null;
-    while(true){if(generation!==historyLoadGeneration)throw new Error('history-load-cancelled');let page=query.orderBy(documentId).limit(1000);if(cursor)page=page.startAfter(cursor);const snapshot=await page.get();if(generation!==historyLoadGeneration)throw new Error('history-load-cancelled');documents.push(...snapshot.docs);if(snapshot.docs.length<1000)break;cursor=snapshot.docs[snapshot.docs.length-1]}
+    const documentId=window.firebase?.firestore?.FieldPath?.documentId?.();if(!documentId){if(generation!==historyLoadGeneration)throw new Error('history-load-cancelled');const snapshot=await query.get();if(generation!==historyLoadGeneration||document.getElementById('historyPage')?.classList.contains('hide'))throw new Error('history-load-cancelled');return snapshot.docs}const documents=[];let cursor=null;
+    while(true){if(generation!==historyLoadGeneration||document.getElementById('historyPage')?.classList.contains('hide'))throw new Error('history-load-cancelled');let page=query.orderBy(documentId).limit(500);if(cursor)page=page.startAfter(cursor);const snapshot=await page.get();if(generation!==historyLoadGeneration||document.getElementById('historyPage')?.classList.contains('hide'))throw new Error('history-load-cancelled');documents.push(...snapshot.docs);if(snapshot.docs.length<500)break;cursor=snapshot.docs[snapshot.docs.length-1];await new Promise(resolve=>setTimeout(resolve,0))}
     return documents
   }
   async function loadHistory(force=false){
@@ -15621,19 +15650,21 @@ body.partner-account #recentClientsBox{display:none!important}
     const generation=++historyLoadGeneration,scope=currentHistoryScope(),body=document.getElementById('historyBody');
     if(historyLoadedScope!==scope){if(historyLoadedScope&&historyRows.length)historyScopeCache.set(historyLoadedScope,historyRows);historyRows=historyScopeCache.get(scope)||[];historyPageNumber=1;historyLoadedScope=scope}
     if(historyRows.length&&!force){populateHistoryCenterFilter();renderHistory();return}
-    historyLoading=true;setHistoryKpisLoading();if(body)body.innerHTML='<tr><td colspan="6" class="legacy-empty">Se încarcă istoricul...</td></tr>';
+    historyLoading=true;setHistoryKpisLoading();if(body)body.innerHTML='<tr><td colspan="6" class="legacy-empty">'+historyLoadingMarkup()+'</td></tr>';
     try{
-      if(!force){const cached=await readHistoryCache(scope);if(generation!==historyLoadGeneration)return;if(Array.isArray(cached)){historyRows=scopedRows(cached);historyLoadedScope=scope;historyScopeCache.set(scope,historyRows);historyPageNumber=1;populateHistoryCenterFilter();renderHistory();loadHistoryCenterDirectory().then(()=>{populateHistoryCenterFilter();renderHistory()});return}}
+      if(!force){const cached=await readHistoryCache(scope);if(generation!==historyLoadGeneration||document.getElementById('historyPage')?.classList.contains('hide'))return;if(Array.isArray(cached)){historyRows=scopedRows(cached);historyLoadedScope=scope;historyScopeCache.set(scope,historyRows);historyPageNumber=1;populateHistoryCenterFilter();renderHistory();loadHistoryCenterDirectory().then(()=>{if(generation!==historyLoadGeneration||document.getElementById('historyPage')?.classList.contains('hide'))return;populateHistoryCenterFilter();renderHistory()});return}}
       const db=historyDb();if(!db)throw new Error('Conexiunea Firestore nu este disponibilă.');
-      await loadHistoryCenterDirectory();populateHistoryCenterFilter();const collection=db.collection(HISTORY_COLLECTION),allowed=allowedCenterKeys(),selected=canFilterHistoryCenters()?selectedHistoryCenterKey():'all';let documents=[];
+      await loadHistoryCenterDirectory();if(generation!==historyLoadGeneration||document.getElementById('historyPage')?.classList.contains('hide'))return;populateHistoryCenterFilter();const collection=db.collection(HISTORY_COLLECTION),allowed=allowedCenterKeys(),selected=canFilterHistoryCenters()?selectedHistoryCenterKey():'all';let documents=[];
       if(allowed===null){const query=selected!=='all'?collection.where('archiveCenterKey','==',selected):collection;documents=await fetchAllHistoryDocuments(query,generation)}else{if(!allowed.length)throw new Error('Contul nu are un centru asociat.');for(const key of allowed)documents.push(...await fetchAllHistoryDocuments(collection.where('archiveCenterKey','==',key),generation))}
       if(generation!==historyLoadGeneration)return;const uniqueDocuments=new Map(documents.map(doc=>[doc.id,doc]));historyRows=scopedRows([...uniqueDocuments.values()].map(doc=>({documentId:doc.id,...doc.data()}))).sort((a,b)=>Number(a.sourceRow||0)-Number(b.sourceRow||0));historyLoadedScope=scope;historyScopeCache.set(scope,historyRows);writeHistoryCache(scope,historyRows);historyPageNumber=1;populateHistoryCenterFilter();renderHistory()
     }catch(error){if(error?.message==='history-load-cancelled')return;console.error(error);historyRows=[];setHistoryKpisLoading();if(body)body.innerHTML='<tr><td colspan="6" class="legacy-empty">Istoricul nu a putut fi încărcat pentru filtrul selectat.</td></tr>'}finally{if(generation===historyLoadGeneration)historyLoading=false}
   }
   function showHistoryPageFast(button){document.querySelectorAll('.page').forEach(page=>page.classList.add('hide'));document.getElementById('historyPage')?.classList.remove('hide');document.querySelectorAll('.menu button').forEach(item=>item.classList.remove('active'));button?.classList.add('active');const title=document.getElementById('pageTitle');if(title)title.textContent='Istoric comenzi';window.scrollTo({top:0,left:0,behavior:'instant'})}
-  window.SPHERA_cancelHistoryLoad=function(){historyLoadGeneration++;historyLoading=false};
-  window.SPHERA_openOrderHistory=function(button){ensureHistoryUi();if(!canUseHistory())return;window.SPHERA_stopOffersSync?.();document.getElementById('offersAddButton')?.style.setProperty('display','none','important');if(canFilterHistoryCenters()){const centerFilter=document.getElementById('historyCenterFilter'),key=centerKey(ownCenter()),label=historyCenterLabel(ownCenter(),currentUser?.name||currentUser?.username||'',currentUser?.operatorCode||currentUser?.code||''),initial=isHistoryAdmin()?'all':key||'all';if(centerFilter&&centerFilter.dataset.initialized!=='true'){centerFilter.innerHTML='<option value="all">Toate depozitele</option>'+(key?'<option value="'+safeHtml(key)+'">'+safeHtml(label)+'</option>':'');centerFilter.value=initial;centerFilter.dataset.initialized='true'}}showHistoryPageFast(button);syncHistoryHeaderAction();setHistoryKpisLoading();const body=document.getElementById('historyBody');if(body&&!historyRows.length)body.innerHTML='<tr><td colspan="6" class="legacy-empty">Se încarcă istoricul...</td></tr>';requestAnimationFrame(()=>setTimeout(()=>loadHistory(),0))};
-  const earlierShowPage=window.showPage;if(typeof earlierShowPage==='function')window.showPage=function(id,button){ensureHistoryUi();if(id==='historyPage'&&!canUseHistory())return earlierShowPage.call(this,'dashboard',document.getElementById('menuDashboard'));if(id!=='historyPage'){historyLoadGeneration++;historyLoading=false}const result=earlierShowPage.apply(this,arguments);removeOldHistoryUi();syncHistoryHeaderAction();if(id==='historyPage'&&canUseHistory()){window.SPHERA_stopOffersSync?.();const title=document.getElementById('pageTitle');if(title)title.textContent='Istoric comenzi';requestAnimationFrame(()=>setTimeout(()=>loadHistory(),0))}return result};
+  window.SPHERA_cancelHistoryLoad=function(){historyLoadGeneration++;historyLoading=false;if(historyStartTimer){clearTimeout(historyStartTimer);historyStartTimer=0}};
+  function scheduleHistoryLoad(){if(historyStartTimer)clearTimeout(historyStartTimer);historyStartTimer=setTimeout(()=>{historyStartTimer=0;if(!document.getElementById('historyPage')?.classList.contains('hide'))loadHistory()},220)}
+  window.SPHERA_openOrderHistory=function(button){ensureHistoryUi();if(!canUseHistory())return;window.SPHERA_stopOffersSync?.();document.getElementById('offersAddButton')?.style.setProperty('display','none','important');if(canFilterHistoryCenters()){const centerFilter=document.getElementById('historyCenterFilter'),key=centerKey(ownCenter()),label=historyCenterLabel(ownCenter(),currentUser?.name||currentUser?.username||'',currentUser?.operatorCode||currentUser?.code||''),initial=isHistoryAdmin()?'all':key||'all';if(centerFilter&&centerFilter.dataset.initialized!=='true'){centerFilter.innerHTML='<option value="all">Toate depozitele</option>'+(key?'<option value="'+safeHtml(key)+'">'+safeHtml(label)+'</option>':'');centerFilter.value=initial;centerFilter.dataset.initialized='true'}}showHistoryPageFast(button);syncHistoryHeaderAction();setHistoryKpisLoading();const body=document.getElementById('historyBody');if(body&&!historyRows.length)body.innerHTML='<tr><td colspan="6" class="legacy-empty">'+historyLoadingMarkup()+'</td></tr>';scheduleHistoryLoad()};
+  const earlierShowPage=window.showPage;if(typeof earlierShowPage==='function')window.showPage=function(id,button){ensureHistoryUi();if(id==='historyPage'&&!canUseHistory())return earlierShowPage.call(this,'dashboard',document.getElementById('menuDashboard'));if(id!=='historyPage')window.SPHERA_cancelHistoryLoad();const result=earlierShowPage.apply(this,arguments);removeOldHistoryUi();syncHistoryHeaderAction();if(id==='historyPage'&&canUseHistory()){window.SPHERA_stopOffersSync?.();const title=document.getElementById('pageTitle');if(title)title.textContent='Istoric comenzi';scheduleHistoryLoad()}return result};
+  document.addEventListener('pointerdown',event=>{const button=event.target.closest?.('.menu button');if(button&&button.id!=='menuHistory')window.SPHERA_cancelHistoryLoad()},true);
   const earlierApplyPermissions=window.applyPermissions;if(typeof earlierApplyPermissions==='function')window.applyPermissions=function(){const result=earlierApplyPermissions.apply(this,arguments);ensureHistoryUi();return result};
   document.addEventListener('DOMContentLoaded',ensureHistoryUi,{once:true});ensureHistoryUi()
 })();
@@ -15675,8 +15706,21 @@ body.partner-account #recentClientsBox{display:none!important}
 .client-offer-save-state{min-height:18px;margin-top:10px;color:#667085;font-size:12px}
 .client-offer-save-state.error{color:#d92d20}.client-offer-save-state.ok{color:#067647}
 .client-offer-modal.modal.open{position:fixed!important;inset:0!important;z-index:2147483500!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;padding:20px!important}
-.client-offer-modal.modal.open>.wizard{position:relative!important;width:min(760px,calc(100vw - 40px))!important;max-width:760px!important;max-height:calc(100dvh - 40px)!important;margin:0!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important}
+.client-offer-modal.modal.open>.wizard{position:relative!important;width:min(760px,calc(100vw - 40px))!important;max-width:760px!important;max-height:calc(100dvh - 24px)!important;margin:0!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important}
 .client-offer-editor #offerEditCurrent,.client-offer-editor #offerEditPrevious{height:54px!important;min-height:54px!important;resize:vertical}
+.offer-client-picker{position:relative}
+.offer-client-suggestions{display:none;position:absolute;z-index:30;top:calc(100% + 6px);left:0;right:0;max-height:260px;overflow:auto;padding:6px;background:#fff;border:1px solid #d0d5dd;border-radius:14px;box-shadow:0 18px 44px rgba(16,24,40,.16)}
+.offer-client-suggestions.open{display:block}
+.offer-client-suggestion{width:100%;border:0;background:#fff;border-radius:10px;padding:10px 12px;text-align:left;cursor:pointer;color:#101828}
+.offer-client-suggestion:hover,.offer-client-suggestion:focus{background:#eff8ff;outline:none}
+.offer-client-suggestion b{display:block;font-size:13px}.offer-client-suggestion span{display:block;margin-top:3px;color:#667085;font-size:11px}
+.client-offer-modal .offer-modal-close{width:42px!important;height:42px!important;min-width:42px!important;border-radius:50%!important;background:#fff!important;border:1px solid #dbe4f0!important;color:#344054!important;font-size:23px!important;font-weight:500!important;line-height:1!important;box-shadow:0 4px 12px rgba(16,24,40,.06)!important}
+.client-offer-modal .offer-modal-close:hover{color:#0b6bff!important;border-color:#a9c8ff!important;background:#f8fbff!important}
+.offer-representative-control{display:grid;grid-template-columns:minmax(0,1fr) 38px;gap:7px;align-items:center}
+.offer-representative-add{width:38px!important;height:38px!important;min-width:38px!important;border-radius:11px!important;background:#fff!important;color:#0b6bff!important;border:1px solid #cfe0ff!important;font-size:22px!important;line-height:1!important}
+.offer-representative-manual{margin-top:6px}.offer-representative-manual[hidden]{display:none!important}
+.client-offer-pdf-pages.fallback{display:block;height:100%;padding:0;overflow:hidden}
+.client-offer-pdf-fallback{display:block;width:100%;height:100%;min-height:620px;border:0;background:#fff}
 .client-offer-pdf-modal.modal.open{position:fixed!important;inset:0!important;z-index:2147483550!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:18px!important;overflow:hidden!important}
 .client-offer-pdf-modal.modal.open>.wizard{width:min(1120px,calc(100vw - 36px))!important;max-width:1120px!important;height:calc(100dvh - 36px)!important;max-height:960px!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;margin:0!important;padding:18px!important;border-radius:24px!important}
 .client-offer-pdf-modal .top{flex:0 0 auto;margin-bottom:12px}
@@ -15684,6 +15728,20 @@ body.partner-account #recentClientsBox{display:none!important}
 .client-offer-pdf-pages{display:grid;gap:14px;justify-items:center}
 .client-offer-pdf-page{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 4px 18px rgba(16,24,40,.16)}
 .client-offer-pdf-state{display:flex;align-items:center;justify-content:center;min-height:220px;color:#667085;font-weight:700;text-align:center}
+@media(min-width:761px) and (min-height:760px){
+  .client-offer-modal.modal.open{padding:12px!important}
+  .client-offer-modal.modal.open>.wizard{padding:16px 20px!important;overflow-y:hidden!important}
+  .client-offer-modal .top{margin-bottom:4px!important}
+  .client-offer-editor{gap:7px 10px!important;margin-top:7px!important}
+  .client-offer-editor .field label{display:block;margin-bottom:3px!important;font-size:11px!important}
+  .client-offer-editor input,.client-offer-editor select{height:38px!important;min-height:38px!important;padding:7px 10px!important}
+  .client-offer-editor #offerEditCurrent,.client-offer-editor #offerEditPrevious{height:44px!important;min-height:44px!important}
+  .client-offer-editor #offerEditNotes{height:54px!important;min-height:54px!important}
+  .client-offer-file{padding:7px 9px!important}
+  .client-offer-file input{height:auto!important;min-height:34px!important}
+  .client-offer-save-state{min-height:12px!important;margin-top:4px!important}
+  .client-offer-modal .icon-btns{margin-top:4px!important}
+}
 @media(max-width:1180px){#clientOffersPage .offers-toolbar{grid-template-columns:1fr 1fr 1fr}.offers-toolbar-search{grid-column:1/-1}}
 @media(max-width:760px){
   #clientOffersPage .offers-kpis{grid-template-columns:1fr 1fr!important;gap:10px}
@@ -15802,17 +15860,39 @@ body.partner-account #recentClientsBox{display:none!important}
     if(window.pdfjsLib)return Promise.resolve(window.pdfjsLib);if(pdfLibraryPromise)return pdfLibraryPromise;
     pdfLibraryPromise=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';script.crossOrigin='anonymous';script.onload=()=>{if(!window.pdfjsLib){reject(new Error('Vizualizatorul PDF nu s-a încărcat.'));return}window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';resolve(window.pdfjsLib)};script.onerror=()=>reject(new Error('Vizualizatorul PDF nu s-a încărcat.'));document.head.appendChild(script)});return pdfLibraryPromise
   }
+  function showOfferPdfFallback(row,state,pages){
+    if(!pages)return;state?.remove();pages.classList.add('fallback');pages.innerHTML='';const frame=document.createElement('iframe'),source=text(row.offerPdfUrl).split('#')[0];frame.className='client-offer-pdf-fallback';frame.title='Oferta '+text(row.denumire);frame.src=source+'#toolbar=0&navpanes=0&scrollbar=1&view=FitH';frame.setAttribute('loading','eager');pages.appendChild(frame)
+  }
   async function renderOfferPdf(row,modal){
     const state=modal.querySelector('.client-offer-pdf-state'),pages=modal.querySelector('.client-offer-pdf-pages'),viewer=modal.querySelector('.client-offer-pdf-view');
+    if(location.protocol==='file:'){showOfferPdfFallback(row,state,pages);return}
     try{const library=await loadPdfLibrary(),documentTask=library.getDocument({url:row.offerPdfUrl,withCredentials:false}),pdf=await documentTask.promise;if(!modal.isConnected)return;state.remove();const pixelRatio=Math.min(window.devicePixelRatio||1,2),available=Math.max(260,viewer.clientWidth-28);for(let number=1;number<=pdf.numPages;number++){if(!modal.isConnected)return;const page=await pdf.getPage(number),base=page.getViewport({scale:1}),cssScale=Math.min(1.7,available/base.width),viewport=page.getViewport({scale:cssScale*pixelRatio}),canvas=document.createElement('canvas'),context=canvas.getContext('2d',{alpha:false});canvas.className='client-offer-pdf-page';canvas.width=Math.floor(viewport.width);canvas.height=Math.floor(viewport.height);canvas.style.width=Math.floor(viewport.width/pixelRatio)+'px';canvas.style.height=Math.floor(viewport.height/pixelRatio)+'px';pages.appendChild(canvas);await page.render({canvasContext:context,viewport}).promise}}
-    catch(error){console.error('SPHERA PDF viewer',error);if(state){state.textContent=error?.message||'Oferta nu a putut fi afișată.';state.style.color='#b42318'}}
+    catch(error){console.error('SPHERA PDF viewer, native fallback',error);if(modal.isConnected)showOfferPdfFallback(row,state,pages)}
   }
   window.SPHERA_openClientOfferPdf=function(encoded){const id=decodeURIComponent(text(encoded)),row=rows.find(item=>item.documentId===id);if(!row?.offerPdfUrl)return;document.querySelector('.client-offer-pdf-modal')?.remove();const modal=document.createElement('div');modal.className='modal open client-offer-pdf-modal';modal.innerHTML=`<div class="wizard"><div class="top"><div><div class="muted">Ofertă</div><div class="step-title">${html(row.denumire)}</div></div><button class="btn ghost offer-pdf-close" type="button">Închide</button></div><div class="client-offer-pdf-view"><div class="client-offer-pdf-state">Se încarcă oferta...</div><div class="client-offer-pdf-pages"></div></div></div>`;document.body.appendChild(modal);const close=()=>modal.remove();modal.querySelector('.offer-pdf-close').onclick=close;modal.addEventListener('mousedown',event=>{if(event.target===modal)close()});modal.tabIndex=-1;modal.focus();requestAnimationFrame(()=>renderOfferPdf(row,modal))};
   function fieldValue(id){return text(document.getElementById(id)?.value)}
+  function savedOfferRepresentatives(){try{const values=JSON.parse(localStorage.getItem('sphera_offer_representatives')||'[]');return Array.isArray(values)?values.map(text).filter(Boolean):[]}catch(_){return[]}}
+  function rememberOfferRepresentative(value){const name=text(value);if(!name)return;const values=[...new Set([...savedOfferRepresentatives(),name])].sort((a,b)=>a.localeCompare(b,'ro'));localStorage.setItem('sphera_offer_representatives',JSON.stringify(values))}
   function editorFields(row={}){
-    const representatives=[...new Set(rows.map(item=>text(item.reprezentant)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ro')),selected=text(row.reprezentant);if(selected&&!representatives.includes(selected))representatives.push(selected);
+    const representatives=[...new Set([...rows.map(item=>text(item.reprezentant)),...savedOfferRepresentatives()].filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ro')),selected=text(row.reprezentant);if(selected&&!representatives.includes(selected))representatives.push(selected);
     const fileField=canUpload()?`<div class="field full client-offer-file"><label>PDF ofertă</label><input id="offerEditPdf" type="file" accept="application/pdf"><div class="muted">${row.offerPdfName?'Fișier actual: '+html(row.offerPdfName):'Poți atașa un fișier PDF.'}</div></div>`:'';
-    return `<div class="client-offer-editor"><div class="field full"><label>Denumire client</label><input id="offerEditName" value="${html(row.denumire||'')}" ${row.documentId?'readonly':''}></div><div class="field"><label>Județ</label><input id="offerEditCounty" value="${html(row.judet||'')}"></div><div class="field"><label>Localitate</label><input id="offerEditCity" value="${html(row.localitate||'')}"></div><div class="field full"><label>Oferta actuală</label><textarea id="offerEditCurrent">${html(row.oferta2026||'')}</textarea></div><div class="field full"><label>Oferta anterioară</label><textarea id="offerEditPrevious">${html(row.ofertaVeche||'')}</textarea></div><div class="field"><label>Reprezentant</label><select id="offerEditRepresentative"><option value="">Nealocat</option>${representatives.map(value=>'<option value="'+html(value)+'" '+(value===selected?'selected':'')+'>'+html(value)+'</option>').join('')}</select></div><div class="field"><label>Status client</label><select id="offerEditStatus"><option value="Activ" ${row.status==='Activ'?'selected':''}>Activ</option><option value="Inactiv" ${row.status!=='Activ'?'selected':''}>Inactiv</option></select></div><div class="field"><label>Status transmitere</label><select id="offerEditSent"><option value="Nu" ${row.transmis!=='Da'?'selected':''}>Netransmis</option><option value="Da" ${row.transmis==='Da'?'selected':''}>Transmis</option></select></div><div class="field"><label>Implementat</label><select id="offerEditImplemented"><option value="Nu" ${row.implementat!=='Da'?'selected':''}>Nu</option><option value="Da" ${row.implementat==='Da'?'selected':''}>Da</option></select></div><div class="field full"><label>Observații</label><textarea id="offerEditNotes">${html(row.observatii||'')}</textarea></div>${fileField}</div>`
+    return `<div class="client-offer-editor"><div class="field full offer-client-picker"><label>Denumire client</label><input id="offerEditName" autocomplete="off" data-client-code="${html(row.spheraClientCode||'')}" value="${html(row.denumire||'')}" ${row.documentId?'readonly':''}><div class="offer-client-suggestions" id="offerClientSuggestions"></div></div><div class="field"><label>Județ</label><input id="offerEditCounty" value="${html(row.judet||'')}"></div><div class="field"><label>Localitate</label><input id="offerEditCity" value="${html(row.localitate||'')}"></div><div class="field"><label>Oferta actuală</label><textarea id="offerEditCurrent">${html(row.oferta2026||'')}</textarea></div><div class="field"><label>Oferta anterioară</label><textarea id="offerEditPrevious">${html(row.ofertaVeche||'')}</textarea></div><div class="field"><label>Reprezentant</label><div class="offer-representative-control"><select id="offerEditRepresentative"><option value="">Nealocat</option>${representatives.map(value=>'<option value="'+html(value)+'" '+(value===selected?'selected':'')+'>'+html(value)+'</option>').join('')}</select><button class="icon-btn offer-representative-add" type="button" aria-label="Adaugă reprezentant" title="Adaugă reprezentant">+</button></div><input class="offer-representative-manual" id="offerEditRepresentativeManual" type="text" placeholder="Nume reprezentant" hidden></div><div class="field"><label>Status client</label><select id="offerEditStatus"><option value="Activ" ${row.status==='Activ'?'selected':''}>Activ</option><option value="Inactiv" ${row.status!=='Activ'?'selected':''}>Inactiv</option></select></div><div class="field"><label>Status transmitere</label><select id="offerEditSent"><option value="Nu" ${row.transmis!=='Da'?'selected':''}>Netransmis</option><option value="Da" ${row.transmis==='Da'?'selected':''}>Transmis</option></select></div><div class="field"><label>Implementat</label><select id="offerEditImplemented"><option value="Nu" ${row.implementat!=='Da'?'selected':''}>Nu</option><option value="Da" ${row.implementat==='Da'?'selected':''}>Da</option></select></div><div class="field full"><label>Observații</label><textarea id="offerEditNotes">${html(row.observatii||'')}</textarea></div>${fileField}</div>`
+  }
+  function spheraClients(){
+    const source=typeof CLIENTS!=='undefined'&&Array.isArray(CLIENTS)?CLIENTS:[],seen=new Set();return source.filter(client=>{const key=text(client?.code)||clean([client?.name,client?.city,client?.county].join('|'));if(!key||seen.has(key))return false;seen.add(key);return true})
+  }
+  function bindOfferClientAutocomplete(modal){
+    const input=modal.querySelector('#offerEditName'),box=modal.querySelector('#offerClientSuggestions');if(!input||!box||input.readOnly)return;
+    const close=()=>{box.classList.remove('open');box.innerHTML=''};
+    const selectClient=client=>{input.value=text(client.name);input.dataset.clientCode=text(client.code);input.dataset.clientId=text(client.id||client.code);const county=modal.querySelector('#offerEditCounty'),city=modal.querySelector('#offerEditCity');if(county)county.value=text(client.county||client.judet);if(city)city.value=text(client.city||client.localitate);close();input.blur()};
+    const update=()=>{const query=clean(input.value);input.dataset.clientCode='';input.dataset.clientId='';if(query.length<2){close();return}const matches=spheraClients().map(client=>({client,score:clean(client.name).startsWith(query)?0:clean([client.name,client.code,client.city,client.county].join(' ')).includes(query)?1:9})).filter(item=>item.score<9).sort((a,b)=>a.score-b.score||text(a.client.name).localeCompare(text(b.client.name),'ro')).slice(0,8);if(!matches.length){close();return}box.innerHTML=matches.map(({client},index)=>`<button type="button" class="offer-client-suggestion" data-index="${index}"><b>${html(client.name)}</b><span>${html([client.code,client.city||client.localitate,client.county||client.judet].filter(Boolean).join(' · '))}</span></button>`).join('');box.classList.add('open');box.querySelectorAll('button').forEach((button,index)=>button.addEventListener('click',()=>selectClient(matches[index].client)))};
+    input.addEventListener('input',update);input.addEventListener('focus',()=>{if(input.value.length>=2)update()});modal.addEventListener('mousedown',event=>{if(!event.target.closest('.offer-client-picker'))close()})
+  }
+  function bindOfferRepresentativeEditor(modal){
+    const button=modal.querySelector('.offer-representative-add'),input=modal.querySelector('#offerEditRepresentativeManual'),select=modal.querySelector('#offerEditRepresentative');if(!button||!input||!select)return;
+    const hide=()=>{input.hidden=true;input.value=''};
+    const commit=()=>{const name=text(input.value);if(!name){hide();return}let option=[...select.options].find(item=>text(item.value).toLocaleLowerCase('ro-RO')===name.toLocaleLowerCase('ro-RO'));if(!option){option=document.createElement('option');option.value=name;option.textContent=name;select.appendChild(option)}select.value=option.value;rememberOfferRepresentative(option.value);hide()};
+    button.addEventListener('click',()=>{input.hidden=false;input.focus()});input.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();commit()}else if(event.key==='Escape'){event.preventDefault();hide()}});input.addEventListener('blur',()=>setTimeout(commit,0))
   }
   function safeStorageName(value){return text(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,120)||'oferta.pdf'}
   async function uploadPdf(app,row,file){
@@ -15830,22 +15910,56 @@ body.partner-account #recentClientsBox{display:none!important}
     if(!canManage())return;const button=document.getElementById('offerSaveButton'),state=document.getElementById('offerSaveState'),name=fieldValue('offerEditName'),current=fieldValue('offerEditCurrent');if(!name||!current){if(state){state.textContent='Completează clientul și oferta actuală.';state.className='client-offer-save-state error'}return}
     if(button){button.disabled=true;button.textContent='Se salvează...'}
     try{
-      const app=firebase.apps.find(item=>item.name===APP_NAME)||firebase.initializeApp(METRICS_CONFIG,APP_NAME),db=app.firestore(),documentId=isNew?'custom_'+Date.now():row.documentId,previous=text(row.oferta2026),payload={id:documentId,denumire:name,judet:fieldValue('offerEditCounty'),localitate:fieldValue('offerEditCity'),oferta2026:current,ofertaVeche:fieldValue('offerEditPrevious'),reprezentant:fieldValue('offerEditRepresentative'),status:fieldValue('offerEditStatus')||'Activ',transmis:fieldValue('offerEditSent')||'Nu',implementat:fieldValue('offerEditImplemented')||'Nu',observatii:fieldValue('offerEditNotes'),creatManual:isNew?true:row.creatManual===true,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+      const app=firebase.apps.find(item=>item.name===APP_NAME)||firebase.initializeApp(METRICS_CONFIG,APP_NAME),db=app.firestore(),documentId=isNew?'custom_'+Date.now():row.documentId,previous=text(row.oferta2026),nameInput=document.getElementById('offerEditName'),representative=fieldValue('offerEditRepresentativeManual')||fieldValue('offerEditRepresentative'),payload={id:documentId,denumire:name,judet:fieldValue('offerEditCounty'),localitate:fieldValue('offerEditCity'),spheraClientCode:text(nameInput?.dataset.clientCode||row.spheraClientCode),spheraClientId:text(nameInput?.dataset.clientId||row.spheraClientId),oferta2026:current,ofertaVeche:fieldValue('offerEditPrevious'),reprezentant:representative,status:fieldValue('offerEditStatus')||'Activ',transmis:fieldValue('offerEditSent')||'Nu',implementat:fieldValue('offerEditImplemented')||'Nu',observatii:fieldValue('offerEditNotes'),creatManual:isNew?true:row.creatManual===true,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};rememberOfferRepresentative(representative);
       if(previous&&previous!==current){const entry={date:new Date().toLocaleString('ro-RO'),ts:Date.now(),oldOffer:previous,newOffer:current};payload.changedAt=entry.date;payload.offerHistory=[entry,...(Array.isArray(row.offerHistory)?row.offerHistory:[])].slice(0,3)}
       const file=canUpload()?document.getElementById('offerEditPdf')?.files?.[0]:null;Object.assign(payload,await uploadPdf(app,{...row,documentId,denumire:name},file));await db.collection('clients').doc(documentId).set(payload,{merge:true});
       if(state){state.textContent='Oferta a fost salvată.';state.className='client-offer-save-state ok'}setTimeout(()=>document.querySelector('.client-offer-modal')?.remove(),350)
     }catch(error){console.error('SPHERA offer save',error);if(state){state.textContent=error?.message||'Oferta nu a putut fi salvată.';state.className='client-offer-save-state error'}if(button){button.disabled=false;button.textContent='Salvează oferta'}}
   }
   window.SPHERA_showClientOffer=function(encoded){
-    const id=decodeURIComponent(text(encoded)),row=rows.find(item=>item.documentId===id);if(!row)return;document.querySelector('.client-offer-modal')?.remove();const modal=document.createElement('div');modal.className='modal open client-offer-modal';const updated=timestamp(row.updatedAt)?new Date(timestamp(row.updatedAt)).toLocaleString('ro-RO'):'Nedisponibil';const content=canManage()?editorFields(row):`<div class="offer-detail-current"><span class="muted">Oferta actuală</span><b>${html(row.oferta2026||'Necompletat')}</b></div><div class="detail-grid" style="margin-top:14px"><div class="muted">Oferta anterioară</div><div>${html(row.ofertaVeche||'Nedisponibil')}</div><div class="muted">Reprezentant</div><div>${html(row.reprezentant||'Nealocat')}</div><div class="muted">Status client</div><div>${html(row.status||'Inactiv')}</div><div class="muted">Transmitere</div><div>${html(row.transmis==='Da'?'Transmisă':'Netransmisă')}</div><div class="muted">Implementare</div><div>${html(row.implementat||'Nespecificat')}</div><div class="muted">Observații</div><div>${html(row.observatii||'Fără observații')}</div><div class="muted">Ultima actualizare</div><div>${html(updated)}</div></div>`;modal.innerHTML=`<div class="wizard" style="max-width:760px"><div class="top"><div><div class="muted">${canManage()?'Editare ofertă':'Ofertă client'}</div><div class="step-title">${html(row.denumire)}</div><div class="muted">${html(row.localitate)}${row.judet?' · '+html(row.judet):''}</div></div><button class="btn ghost offer-modal-close" type="button">Închide</button></div>${content}<div class="client-offer-save-state" id="offerSaveState"></div><div class="icon-btns" style="margin-top:10px">${canManage()?'<button class="btn primary" id="offerSaveButton" type="button">Salvează oferta</button>':''}${text(row.offerPdfUrl)?'<button class="btn ghost" type="button" onclick="SPHERA_openClientOfferPdf(\''+html(encodeURIComponent(row.documentId))+'\')">Deschide PDF</button>':''}<button class="btn ghost offer-modal-close-bottom" type="button">Închide</button></div></div>`;document.body.appendChild(modal);modal.querySelector('#offerSaveButton')?.addEventListener('click',()=>saveEditor(row,false));modal.querySelectorAll('.offer-modal-close,.offer-modal-close-bottom').forEach(button=>button.onclick=()=>modal.remove());modal.addEventListener('mousedown',event=>{if(event.target===modal)modal.remove()})
+    const id=decodeURIComponent(text(encoded)),row=rows.find(item=>item.documentId===id);if(!row)return;document.querySelector('.client-offer-modal')?.remove();const modal=document.createElement('div');modal.className='modal open client-offer-modal';const updated=timestamp(row.updatedAt)?new Date(timestamp(row.updatedAt)).toLocaleString('ro-RO'):'Nedisponibil';const content=canManage()?editorFields(row):`<div class="offer-detail-current"><span class="muted">Oferta actuală</span><b>${html(row.oferta2026||'Necompletat')}</b></div><div class="detail-grid" style="margin-top:14px"><div class="muted">Oferta anterioară</div><div>${html(row.ofertaVeche||'Nedisponibil')}</div><div class="muted">Reprezentant</div><div>${html(row.reprezentant||'Nealocat')}</div><div class="muted">Status client</div><div>${html(row.status||'Inactiv')}</div><div class="muted">Transmitere</div><div>${html(row.transmis==='Da'?'Transmisă':'Netransmisă')}</div><div class="muted">Implementare</div><div>${html(row.implementat||'Nespecificat')}</div><div class="muted">Observații</div><div>${html(row.observatii||'Fără observații')}</div><div class="muted">Ultima actualizare</div><div>${html(updated)}</div></div>`;modal.innerHTML=`<div class="wizard" style="max-width:760px"><div class="top"><div><div class="muted">${canManage()?'Editare ofertă':'Ofertă client'}</div><div class="step-title">${html(row.denumire)}</div><div class="muted">${html(row.localitate)}${row.judet?' · '+html(row.judet):''}</div></div><button class="icon-btn offer-modal-close" type="button" aria-label="Închide" title="Închide">×</button></div>${content}<div class="client-offer-save-state" id="offerSaveState"></div><div class="icon-btns" style="margin-top:10px">${canManage()?'<button class="btn primary" id="offerSaveButton" type="button">Salvează oferta</button>':''}${text(row.offerPdfUrl)?'<button class="btn ghost" type="button" onclick="SPHERA_openClientOfferPdf(\''+html(encodeURIComponent(row.documentId))+'\')">Deschide PDF</button>':''}</div></div>`;document.body.appendChild(modal);bindOfferRepresentativeEditor(modal);modal.querySelector('#offerSaveButton')?.addEventListener('click',()=>saveEditor(row,false));modal.querySelector('.offer-modal-close')?.addEventListener('click',()=>modal.remove());modal.addEventListener('mousedown',event=>{if(event.target===modal)modal.remove()})
   };
-  window.SPHERA_createClientOffer=function(){if(!canManage())return;document.querySelector('.client-offer-modal')?.remove();const modal=document.createElement('div');modal.className='modal open client-offer-modal';modal.innerHTML=`<div class="wizard" style="max-width:760px"><div class="top"><div><div class="muted">Ofertă nouă</div><div class="step-title">Adaugă ofertă client</div></div><button class="btn ghost offer-modal-close" type="button">Închide</button></div>${editorFields({status:'Activ',transmis:'Nu',implementat:'Nu'})}<div class="client-offer-save-state" id="offerSaveState"></div><div class="icon-btns"><button class="btn primary" id="offerSaveButton" type="button">Salvează oferta</button><button class="btn ghost offer-modal-close-bottom" type="button">Anulează</button></div></div>`;document.body.appendChild(modal);modal.querySelector('#offerSaveButton')?.addEventListener('click',()=>saveEditor({},true));modal.querySelectorAll('.offer-modal-close,.offer-modal-close-bottom').forEach(button=>button.onclick=()=>modal.remove());modal.addEventListener('mousedown',event=>{if(event.target===modal)modal.remove()})};
+  window.SPHERA_createClientOffer=function(){if(!canManage())return;document.querySelector('.client-offer-modal')?.remove();const modal=document.createElement('div');modal.className='modal open client-offer-modal';modal.innerHTML=`<div class="wizard" style="max-width:760px"><div class="top"><div><div class="muted">Ofertă nouă</div><div class="step-title">Adaugă ofertă client</div></div><button class="icon-btn offer-modal-close" type="button" aria-label="Închide" title="Închide">×</button></div>${editorFields({status:'Activ',transmis:'Nu',implementat:'Nu'})}<div class="client-offer-save-state" id="offerSaveState"></div><div class="icon-btns"><button class="btn primary" id="offerSaveButton" type="button">Salvează oferta</button></div></div>`;document.body.appendChild(modal);bindOfferClientAutocomplete(modal);bindOfferRepresentativeEditor(modal);modal.querySelector('#offerSaveButton')?.addEventListener('click',()=>saveEditor({},true));modal.querySelector('.offer-modal-close')?.addEventListener('click',()=>modal.remove());modal.addEventListener('mousedown',event=>{if(event.target===modal)modal.remove()})};
+  function comparableClientName(value){return clean(value).replace(/[.,()\-_/]+/g,' ').replace(/\b(srl|s r l|sa|s a|sc|s c)\b/g,' ').replace(/\s+/g,' ').trim()}
+  function controlledOpticAlias(first,second){const a=comparableClientName(first).split(' ').filter(Boolean),b=comparableClientName(second).split(' ').filter(Boolean),shorter=a.length<=b.length?a:b,longer=a.length<=b.length?b:a;if(shorter.length!==1||longer.length!==2)return false;return shorter[0]===longer[0]&&['optic','optica'].includes(longer[1])}
+  function findOfferForOrder(order){
+    const code=text(order?.client?.code),name=comparableClientName(order?.client?.name),city=clean(order?.client?.city),codeOf=row=>text(row.spheraClientCode);
+    const exactCode=rows.find(row=>code&&codeOf(row)===code);if(exactCode)return exactCode;
+    const exactName=rows.filter(row=>name&&comparableClientName(row.denumire)===name);if(exactName.length)return exactName.find(row=>city&&clean(row.localitate)===city)||exactName[0];
+    const aliases=rows.filter(row=>controlledOpticAlias(order?.client?.name,row.denumire));return aliases.length===1?aliases[0]:null
+  }
+  window.SPHERA_getClientOfferForOrder=async function(order){
+    let match=findOfferForOrder(order);if(match)return match;const db=metricsDb();if(!db)return null;try{const snapshot=await db.collection('clients').get();rows=snapshot.docs.map(doc=>({documentId:doc.id,...doc.data()})).sort((a,b)=>timestamp(b.updatedAt)-timestamp(a.updatedAt)||text(a.denumire).localeCompare(text(b.denumire),'ro'));match=findOfferForOrder(order);return match}catch(error){console.warn('SPHERA order client offer lookup',error);return null}
+  };
   function showOffersFast(button){window.SPHERA_cancelHistoryLoad?.();document.querySelectorAll('.page').forEach(page=>page.classList.add('hide'));document.getElementById(PAGE_ID)?.classList.remove('hide');document.querySelectorAll('.menu button').forEach(item=>item.classList.remove('active'));(button||document.getElementById(MENU_ID))?.classList.add('active');const title=document.getElementById('pageTitle');if(title)title.textContent='Oferte clienți';if(typeof window.syncPageActions==='function')window.syncPageActions();document.getElementById('historyImportBtn')?.style.setProperty('display','none','important');syncOfferHeaderAction();document.body.classList.remove('mobile-menu-open');window.scrollTo({top:0,left:0,behavior:'instant'});requestAnimationFrame(()=>startSync())}
   window.SPHERA_stopOffersSync=stopSync;
   window.SPHERA_openClientOffers=function(button){ensureUi();if(!allowed())return;showOffersFast(button)};
   const baseShowPage=window.showPage;if(typeof baseShowPage==='function')window.showPage=function(id,button){if(id===PAGE_ID&&!allowed())return baseShowPage.call(this,'dashboard',document.getElementById('menuDashboard'));const result=baseShowPage.apply(this,arguments);ensureUi();syncOfferHeaderAction();if(id===PAGE_ID){const title=document.getElementById('pageTitle');if(title)title.textContent='Oferte clienți';requestAnimationFrame(()=>startSync())}else stopSync();return result};
   const baseApplyPermissions=window.applyPermissions;if(typeof baseApplyPermissions==='function')window.applyPermissions=function(){const result=baseApplyPermissions.apply(this,arguments);ensureUi();return result};
   document.addEventListener('DOMContentLoaded',ensureUi,{once:true});ensureUi()
+})();
+</script>
+<style id="sphera-order-client-offer-v15-style">
+.order-client-offer-value{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.order-client-offer-value .btn{min-height:34px;padding:7px 12px;border-radius:10px}
+</style>
+<script id="sphera-order-client-offer-v15">
+(function(){
+  'use strict';
+  const previousDetails=window.showOrderDetails;
+  if(typeof previousDetails!=='function')return;
+  function cleanLabel(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase()}
+  async function addClientOffer(orderId){
+    const order=(Array.isArray(orders)?orders:[]).find(item=>String(item?.id)===String(orderId));if(!order)return;
+    const modals=[...document.querySelectorAll('.order-details-modal.modal.open')],modal=modals[modals.length-1];if(!modal||modal.dataset.orderOfferAdded==='true')return;modal.dataset.orderOfferAdded='true';
+    const statusLabel=[...modal.querySelectorAll('.order-detail-label')].find(node=>cleanLabel(node.textContent)==='status'),group=statusLabel?.parentElement;if(!statusLabel||!group)return;
+    const label=document.createElement('div'),value=document.createElement('div');label.className='order-detail-label order-client-offer-label';label.textContent='Oferta client';value.className='order-detail-value order-client-offer-value';value.innerHTML='<span class="muted">Se caută oferta...</span>';group.insertBefore(label,statusLabel);group.insertBefore(value,statusLabel);
+    const offer=await window.SPHERA_getClientOfferForOrder?.(order);if(!modal.isConnected)return;
+    if(!offer){value.textContent='Nu există ofertă asociată';return}
+    value.innerHTML='';const name=document.createElement('span');name.textContent=String(offer.oferta2026||'Ofertă disponibilă');value.appendChild(name);
+    if(offer.offerPdfUrl){const button=document.createElement('button');button.type='button';button.className='btn ghost';button.textContent='Vizualizează';button.onclick=()=>window.SPHERA_openClientOfferPdf?.(encodeURIComponent(String(offer.documentId)));value.appendChild(button)}
+  }
+  window.showOrderDetails=function(id){const result=previousDetails.apply(this,arguments);setTimeout(()=>addClientOffer(id),0);return result}
 })();
 </script>
 <script id="sphera-runtime-performance-v10">
