@@ -12212,7 +12212,7 @@ body.partner-account #recentClientsBox{display:none!important}
 
   function renderPermissionsPanel(){
     ensureCard();
-    if(!(isAdmin()||can('users.manage'))){document.getElementById('permissionsCard')?.classList.add('hide');return}
+    if(!(isAdmin()||can('users.manage')||protectedAdministrator(currentUser)||['admin','administrator'].includes(clean(currentUser?.role)))){document.getElementById('permissionsCard')?.classList.add('hide');return}
     document.getElementById('permissionsCard')?.classList.remove('hide');
     const list=users();if(!selectedUserKey&&list.length)selectedUserKey=accountKey(list[0]);
     if(selectedUserKey&&!userByKey(selectedUserKey)){selectedUserKey=list.length?accountKey(list[0]):'';draft=null}
@@ -17818,3 +17818,103 @@ if(typeof oldRender==='function')window.renderClients=function(){
   justify-content:center!important;
 }
 </style>
+<style id="sphera-v44-history-admin-fix">
+/* v44: history header buttons use the same sizing as the standard page actions. */
+#historyImportBtn,#historyDeleteAllBtn{
+  box-sizing:border-box!important;
+  width:132px!important;
+  min-width:132px!important;
+  height:48px!important;
+  min-height:48px!important;
+  padding:12px 16px!important;
+  border-radius:14px!important;
+  align-items:center!important;
+  justify-content:center!important;
+  font-weight:800!important;
+  line-height:1.2!important;
+}
+</style>
+<script id="sphera-v44-admin-permissions-visibility">
+(function(){
+ 'use strict';
+ function norm(v){return String(v||'').trim().toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
+ function admin(){
+   try{if(typeof window.isAdmin==='function'&&window.isAdmin())return true}catch(_){}
+   var u=window.currentUser||{};
+   var vals=[u.role,u.permissionTemplate,u.type,u.accountType,u.profile,u.userType].map(norm);
+   return vals.some(function(v){return v==='admin'||v==='administrator'||v.indexOf('administrator')===0})
+ }
+ function fix(){
+   if(!admin())return;
+   var settings=document.getElementById('settings');
+   if(!settings)return;
+   var card=document.getElementById('permissionsCard');
+   if(!card&&typeof window.renderPermissionsPanel==='function'){
+     try{window.renderPermissionsPanel()}catch(_){}
+     card=document.getElementById('permissionsCard');
+   }
+   if(card){
+     card.classList.remove('hide');
+     card.hidden=false;
+     card.removeAttribute('aria-hidden');
+     card.style.removeProperty('display');
+   }
+ }
+ document.addEventListener('click',function(e){
+   if(e.target.closest&&e.target.closest('#menuSettings'))requestAnimationFrame(function(){fix();setTimeout(fix,50)})
+ },true);
+ document.addEventListener('DOMContentLoaded',function(){setTimeout(fix,0);setTimeout(fix,300)},{once:true});
+ try{
+   new MutationObserver(function(){
+     var settings=document.getElementById('settings');
+     if(settings&&!settings.classList.contains('hide'))requestAnimationFrame(fix)
+   }).observe(document.documentElement,{subtree:true,attributes:true,attributeFilter:['class','style','hidden']});
+ }catch(_){}
+ setTimeout(fix,500);
+})();
+</script>
+
+<style id="sphera-v45-final-ui-fix">
+/* History actions: use the same filled primary-button treatment as other page actions. */
+#historyImportBtn,#historyDeleteAllBtn{
+  box-sizing:border-box!important;
+  width:132px!important;
+  min-width:132px!important;
+  height:48px!important;
+  min-height:48px!important;
+  padding:12px 16px!important;
+  border:0!important;
+  outline:0!important;
+  border-radius:14px!important;
+  background:#165dff!important;
+  color:#fff!important;
+  box-shadow:0 12px 24px rgba(22,93,255,.18)!important;
+  font-weight:800!important;
+  line-height:1.2!important;
+}
+#historyImportBtn:hover,#historyDeleteAllBtn:hover{background:#0f52e8!important;color:#fff!important;border:0!important}
+#historyImportBtn:focus,#historyDeleteAllBtn:focus{outline:0!important;border:0!important}
+</style>
+<script id="sphera-v45-permissions-complete-fix">
+(function(){
+ 'use strict';
+ function norm(v){return String(v||'').trim().toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
+ function admin(){
+   try{if(typeof window.isAdmin==='function'&&window.isAdmin())return true}catch(_){ }
+   var u=window.currentUser||{};
+   return [u.role,u.permissionTemplate,u.type,u.accountType,u.profile,u.userType,u.username].map(norm).some(function(v){return v==='admin'||v==='administrator'||v.indexOf('administrator')===0});
+ }
+ function refresh(){
+   if(!admin())return;
+   var settings=document.getElementById('settings');
+   if(!settings||settings.classList.contains('hide'))return;
+   try{if(typeof window.renderPermissionsPanel==='function')window.renderPermissionsPanel()}catch(e){console.warn('SPHERA permissions refresh',e)}
+   var card=document.getElementById('permissionsCard');
+   if(card){card.classList.remove('hide');card.hidden=false;card.style.removeProperty('display')}
+ }
+ document.addEventListener('click',function(e){if(e.target.closest?.('#menuSettings'))setTimeout(refresh,80)},true);
+ document.addEventListener('DOMContentLoaded',function(){setTimeout(refresh,350)},{once:true});
+ setTimeout(refresh,700);
+})();
+</script>
+
