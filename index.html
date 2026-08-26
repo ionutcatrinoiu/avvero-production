@@ -12212,7 +12212,7 @@ body.partner-account #recentClientsBox{display:none!important}
 
   function renderPermissionsPanel(){
     ensureCard();
-    if(!can('users.manage')){document.getElementById('permissionsCard')?.classList.add('hide');return}
+    if(!(isAdmin()||can('users.manage'))){document.getElementById('permissionsCard')?.classList.add('hide');return}
     document.getElementById('permissionsCard')?.classList.remove('hide');
     const list=users();if(!selectedUserKey&&list.length)selectedUserKey=accountKey(list[0]);
     if(selectedUserKey&&!userByKey(selectedUserKey)){selectedUserKey=list.length?accountKey(list[0]):'';draft=null}
@@ -17804,5 +17804,17 @@ if(typeof oldRender==='function')window.renderClients=function(){
 <style id="sphera-order-client-offer-alignment-v41">
 .order-details-modal .order-client-offer-label{
   align-self:center;
+}
+</style>
+<style id="sphera-v42-history-buttons-equal">
+#historyImportBtn,#historyDeleteAllBtn{
+  box-sizing:border-box!important;
+  width:126px!important;
+  min-width:126px!important;
+  height:42px!important;
+  min-height:42px!important;
+  padding:0 12px!important;
+  align-items:center!important;
+  justify-content:center!important;
 }
 </style>
