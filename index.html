@@ -17723,3 +17723,81 @@ setTimeout(forceActionScope,0);
 })();
 </script>
 n
+<!-- SPHERA v40: definitive administrator client edit/delete -->
+<style id="sphera-v40-client-admin-style">
+#clientRows .client-save-check.v40-saving{background:#087a34!important;border-color:#087a34!important;box-shadow:0 0 0 4px rgba(8,122,52,.18)!important}
+#clientRows .client-save-check.v40-saved{background:#05652b!important;border-color:#05652b!important;box-shadow:0 0 0 4px rgba(5,101,43,.16)!important}
+</style>
+<script id="sphera-v40-client-admin-fix">
+(function(){
+'use strict';
+const txt=v=>String(v==null?'':v).trim();
+const upper=v=>txt(v).toLocaleUpperCase('ro-RO');
+const admin=()=>typeof isAdmin==='function'&&isAdmin();
+const editable=()=>admin()||(typeof window.SPHERA_HAS_PERMISSION==='function'&&window.SPHERA_HAS_PERMISSION('clients.edit'));
+const ids=(c,code)=>[c?.code,c?.originalCode,c?.__originalCode].map(txt).filter(Boolean).includes(txt(code));
+function shared(){if(!window.SPHERA_DB||!window.SPHERA_AUTH?.currentUser)throw new Error('Conexiunea Firestore nu este disponibilă.');return window.SPHERA_DB.collection('appData').doc('shared')}
+async function writeClients(mutator){
+ const ref=shared();
+ const snap=await ref.get();
+ const cloud=Array.isArray(snap.data()?.clients)?snap.data().clients.slice():[];
+ const next=mutator(cloud)||cloud;
+ await ref.set({clients:next,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:window.SPHERA_AUTH.currentUser.uid},{merge:true});
+ USER_CLIENTS.splice(0,USER_CLIENTS.length,...next);
+ localStorage.setItem('sphera_user_clients',JSON.stringify(USER_CLIENTS));
+ return next;
+}
+async function saveRow(row,btn){
+ if(!editable())return;
+ const code=txt(row?.dataset.clientCode); const name=upper(row?.querySelector('[data-client-field="name"]')?.value); const city=upper(row?.querySelector('[data-client-field="city"]')?.value);
+ if(!code||!name||!city)return;
+ btn.disabled=true;btn.classList.add('v40-saving');
+ try{
+   const target=(CLIENTS||[]).find(c=>ids(c,code)); if(!target)throw new Error('Clientul nu a fost găsit.');
+   const original=txt(target.__originalCode||target.originalCode||target.code||code);
+   await writeClients(cloud=>{
+     let item=cloud.find(c=>c&&c.isAdminOverride===true&&ids(c,original));
+     if(!item){item={isAdminOverride:true,originalCode:original,code:txt(target.code||code)};cloud.push(item)}
+     Object.assign(item,{isAdminOverride:true,isDeleted:false,originalCode:original,code:txt(target.code||code),name,city,cui:txt(target.cui||item.cui)});
+     return cloud;
+   });
+   Object.assign(target,{name,city,__originalCode:original});
+   btn.classList.remove('v40-saving');btn.classList.add('v40-saved');
+   setTimeout(()=>{btn.classList.remove('v40-saved');btn.disabled=false},700);
+ }catch(err){console.error('SPHERA v40 client save',err);btn.classList.remove('v40-saving');btn.disabled=false;showAppConfirm?.({title:'Clientul nu a fost salvat',text:txt(err.message||err),confirmText:'OK'})}
+}
+async function removeClient(code){
+ if(!admin())return;
+ const target=(CLIENTS||[]).find(c=>ids(c,code)); if(!target)return;
+ const original=txt(target.__originalCode||target.originalCode||target.code||code);
+ showAppConfirm({title:'Eliminare client',text:'Elimini acest client din nomenclator?',confirmText:'Elimină',cancelText:'Anulează',danger:true,onConfirm:async()=>{
+   try{
+     await writeClients(cloud=>{
+       const kept=cloud.filter(c=>!ids(c,original));
+       kept.push({isAdminOverride:true,isDeleted:true,originalCode:original,code:txt(target.code||code),name:txt(target.name),city:txt(target.city),cui:txt(target.cui)});
+       return kept;
+     });
+     for(let i=CLIENTS.length-1;i>=0;i--)if(ids(CLIENTS[i],original))CLIENTS.splice(i,1);
+     window.renderClients?.();
+   }catch(err){console.error('SPHERA v40 client delete',err);showAppConfirm?.({title:'Clientul nu a fost șters',text:txt(err.message||err),confirmText:'OK'})}
+ }});
+}
+window.deleteClient=removeClient;
+document.addEventListener('click',function(e){
+ const save=e.target.closest?.('#clientRows .client-save-check');
+ if(save){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();saveRow(save.closest('tr'),save);return}
+ const del=e.target.closest?.('#clientRows button[title="Șterge client"]');
+ if(del&&admin()){
+   const row=del.closest('tr'); const code=txt(row?.dataset.clientCode||row?.querySelector('input[readonly]:last-of-type')?.value);
+   if(code){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();removeClient(code)}
+ }
+},true);
+/* Honor persisted deletion markers whenever the client page is rebuilt. */
+const oldRender=window.renderClients;
+if(typeof oldRender==='function')window.renderClients=function(){
+ const deleted=new Set((USER_CLIENTS||[]).filter(c=>c?.isDeleted).map(c=>txt(c.originalCode||c.code)));
+ if(deleted.size&&Array.isArray(CLIENTS))for(let i=CLIENTS.length-1;i>=0;i--){const c=CLIENTS[i];if([c.code,c.originalCode,c.__originalCode].map(txt).some(x=>deleted.has(x)))CLIENTS.splice(i,1)}
+ return oldRender.apply(this,arguments);
+};
+})();
+</script>
