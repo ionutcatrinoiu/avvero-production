@@ -1509,9 +1509,42 @@ if(typeof checkpointBase==='function'){
       return result
     }finally{setTimeout(()=>groupLocks.delete(groupId),300)}
   };
-  window.setWorkflowStatus=function(id,status){return window.SPHERA_applyCheckpoint(null,id,status)};
+window.setWorkflowStatus=function(id,status){return window.SPHERA_applyCheckpoint(null,id,status)};
 }
 })();
+</script>
+<script id="sphera-v145-operator-delivery-compatibility">
+document.addEventListener('DOMContentLoaded',function(){
+'use strict';
+const text=value=>String(value??'').trim();
+const key=value=>text(value).toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ș/g,'s').replace(/ț/g,'t');
+function user(){try{return window.currentUser||(typeof currentUser!=='undefined'?currentUser:{})||{}}catch(_){return window.currentUser||{}}}
+function operationalRole(){
+ const account=user(),values=[account.role,account.permissionTemplate,account.type,account.accountType].map(key);
+ return values.some(value=>['admin','administrator','operator','custom','iasi','master','operator master','operator-master','operator garantii','operator-garantii'].includes(value));
+}
+const permissionBase=window.SPHERA_HAS_PERMISSION;
+if(typeof permissionBase==='function')window.SPHERA_HAS_PERMISSION=function(permission){
+ if(key(permission)==='orders.deliver'&&operationalRole())return true;
+ return permissionBase.apply(this,arguments);
+};
+/* Recalculează butoanele vizibile după autentificare și după fiecare randare. */
+function refreshDeliveryButtons(){
+ const list=window.orders||(typeof orders!=='undefined'?orders:[])||[];
+ document.querySelectorAll('#processingOrdersList [data-checkpoint-order][data-checkpoint-status]').forEach(button=>{
+  const order=list.find(item=>String(item.id)===String(button.dataset.checkpointOrder));
+  const allowed=!!order&&typeof window.canSetWorkflowStep==='function'&&window.canSetWorkflowStep(button.dataset.checkpointStatus,order);
+  button.disabled=!allowed;button.setAttribute('aria-disabled',allowed?'false':'true');
+  button.title=allowed?'Setează '+button.dataset.checkpointStatus:'Etapă indisponibilă';
+ });
+}
+const renderBase=window.SPHERA_renderStatusOrders;
+if(typeof renderBase==='function'){
+ window.SPHERA_renderStatusOrders=function(){const result=renderBase.apply(this,arguments);requestAnimationFrame(refreshDeliveryButtons);return result};
+ window.renderProcessingOrders=function(){return window.SPHERA_renderStatusOrders.apply(this,arguments)};
+}
+window.addEventListener('load',()=>requestAnimationFrame(refreshDeliveryButtons),{once:true});
+},{once:true});
 </script>
 <style id="sphera-v136-admin-statistics-style">
 #statisticsPage{min-width:0;max-width:100%}
