@@ -16766,6 +16766,52 @@ if(typeof oldShow==='function')window.showPage=function(){
 };
 })();
 </script>
+<style id="sphera-v143-header-action-controller-style">
+#spheraActionParking{display:none!important}
+</style>
+<script id="sphera-v143-header-action-controller">
+(function(){
+'use strict';
+const ids=['newOrderBtn','newClientBtn','offersAddButton','historyImportBtn','historyDeleteAllBtn','historyLoadBtn','historyLoadBtnV18'];
+const sections={menuDashboard:'dashboard',menuClients:'clients',menuClientOffers:'offers',menuHistory:'history',menuProcessing:'status',menuWarranties:'warranties',menuStatistics:'statistics',menuNomenclators:'nomenclators',menuSettings:'settings'};
+const wanted={dashboard:['newOrderBtn','newClientBtn'],clients:['newClientBtn'],offers:['offersAddButton'],history:['historyImportBtn','historyDeleteAllBtn']};
+let syncing=false;
+function permitted(id){
+ try{
+  if(id==='newOrderBtn'&&typeof window.canCreateOrders==='function')return !!window.canCreateOrders();
+  if(id==='newClientBtn'&&typeof window.canManageClients==='function')return !!window.canManageClients();
+  if(id==='offersAddButton')return typeof window.SPHERA_HAS_PERMISSION!=='function'||window.SPHERA_HAS_PERMISSION('pages.offers')&&window.SPHERA_HAS_PERMISSION('offers.view');
+  if(id.startsWith('history')&&typeof window.canUseHistory==='function')return !!window.canUseHistory();
+ }catch(_){return false}
+ return true
+}
+function section(){const active=document.querySelector('.menu button.active');return sections[active?.id]||'other'}
+function parking(){let box=document.getElementById('spheraActionParking');if(!box){box=document.createElement('div');box.id='spheraActionParking';box.hidden=true;document.body.appendChild(box)}return box}
+function sync(){
+ if(syncing)return;syncing=true;
+ try{
+  const current=section(),allowed=new Set(wanted[current]||[]),actions=document.querySelector('.main>.top .top-actions'),park=parking();
+  document.body.dataset.spheraSection=current;
+  ids.forEach(id=>{
+   const button=document.getElementById(id);if(!button)return;
+   if(allowed.has(id)&&permitted(id)&&actions){if(button.parentNode!==actions)actions.insertBefore(button,actions.querySelector('.logout-account-wrap'));button.hidden=false;button.classList.remove('hide');button.style.setProperty('display','inline-flex','important')}
+   else{button.hidden=true;button.style.setProperty('display','none','important');if(button.parentNode!==park)park.appendChild(button)}
+  })
+ }finally{syncing=false}
+}
+window.SPHERA_syncHeaderActions=sync;
+const warrantyBase=window.SPHERA_openWarrantyForm;
+if(typeof warrantyBase==='function')window.SPHERA_openWarrantyForm=function(){const result=warrantyBase.apply(this,arguments);requestAnimationFrame(()=>{const input=document.querySelector('.warranty-modal #warrantyReason');if(input)input.placeholder='Exemplu: Neacomodare, dioptrii modificate, lentile zgâriate mecanic, tratament deteriorat.'});return result};
+const showBase=window.showPage;
+if(typeof showBase==='function')window.showPage=function(){const result=showBase.apply(this,arguments);queueMicrotask(sync);return result};
+['SPHERA_openClientOffers','SPHERA_openOrderHistory'].forEach(name=>{const base=window[name];if(typeof base==='function')window[name]=function(){const result=base.apply(this,arguments);queueMicrotask(sync);return result}});
+document.addEventListener('click',event=>{if(event.target.closest?.('.menu button'))requestAnimationFrame(sync)},true);
+const menu=document.querySelector('.menu'),actions=document.querySelector('.main>.top .top-actions');
+if(menu)new MutationObserver(sync).observe(menu,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
+if(actions)new MutationObserver(sync).observe(actions,{childList:true});
+sync();setTimeout(sync,700);
+})();
+</script>
 <style id="sphera-v9-performance-css">
 .workflow-order,.processing-order-card{contain:layout paint style;content-visibility:auto;contain-intrinsic-size:180px}
 #processingOrdersList{contain:layout style}
@@ -18072,6 +18118,14 @@ if(typeof apply==='function'){
 }
 })();
 </script>
+<script id="sphera-v144-final-header-actions-hook">
+(function(){
+'use strict';
+const base=window.showPage;
+if(typeof base==='function')window.showPage=function(){const result=base.apply(this,arguments);queueMicrotask(()=>window.SPHERA_syncHeaderActions?.());return result};
+window.addEventListener('load',()=>window.SPHERA_syncHeaderActions?.(),{once:true});
+})();
+</script>
 <style id="sphera-v38-action-scope">
 /* v38: header actions are scoped to their own page, regardless of legacy inline styles. */
 #offersAddButton,#historyImportBtn,#historyDeleteAllBtn,#historyLoadBtn,#historyLoadBtnV18{display:none!important}
@@ -18432,7 +18486,7 @@ document.addEventListener('click',event=>{if(event.target.closest?.('#menuProces
 </style>
 <style id="sphera-v142-warranty-visibility-style">
 .warranty-form .warranty-premium-choice[style*="display: none"]{display:none!important}
-.warranty-form .field:has(#warrantyReason)::after{content:"Sugestii: neacomodare, dioptrii modificate, lentile zgâriate, tratament deteriorat.";display:block;margin-top:5px;color:#667085;font-size:11px;line-height:1.35}
+.warranty-form .field:has(#warrantyReason)::after{content:none!important;display:none!important}
 body.sphera-warranties-page-active #newOrderBtn,
 body.sphera-warranties-page-active #newClientBtn,
 body.sphera-warranties-page-active #offersAddButton,
@@ -18452,6 +18506,8 @@ let frame=0;
 if(typeof priorShow==='function')window.showPage=function(id){document.body.classList.remove('sphera-warranties-page-active');const result=priorShow.apply(this,arguments);cancelAnimationFrame(frame);if(String(id)==='dashboard')frame=requestAnimationFrame(()=>{frame=0;const page=document.getElementById('dashboard');if(page&&!page.classList.contains('hide'))window.render?.()});return result};
 function placeStatistics(){const statistics=document.getElementById('menuStatistics'),nomenclators=document.getElementById('menuNomenclators');if(statistics&&nomenclators&&statistics.nextElementSibling!==nomenclators)nomenclators.parentNode?.insertBefore(statistics,nomenclators)}
 placeStatistics();document.addEventListener('DOMContentLoaded',placeStatistics,{once:true});
+const actionShowBase=window.showPage;
+if(typeof actionShowBase==='function')window.showPage=function(){const result=actionShowBase.apply(this,arguments);queueMicrotask(()=>window.SPHERA_syncHeaderActions?.());return result};
 const priorCheckpoint=window.SPHERA_applyCheckpoint,locks=new Set();
 function operatorEntry(){const user=window.currentUser||(typeof currentUser!=='undefined'?currentUser:{})||{},now=new Date();return{name:text(user.name||user.displayName||user.username)||'Utilizator',username:text(user.username),uid:text(user.uid||user.id),role:text(user.role),center:text(user.center),at:now.toISOString(),date:now.toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit',year:'numeric'}),time:now.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})}}
 function updatePeer(order,status,revision){const entry=operatorEntry();if(!order.workflowChecks||typeof order.workflowChecks!=='object'||Array.isArray(order.workflowChecks))order.workflowChecks={};order.workflowChecks[status]=entry;order.workflowStatus=status;order.status=key(status)==='livrata'?'Livrată':'Lansată';order.workflowUpdatedAt=entry.at;order.statusUpdatedAt=entry.at;order.workflowUpdatedBy=entry.uid||entry.username||entry.name;order.workflowRevision=revision;order.workflowUpdatedAtMs=revision;if(key(status)==='livrata'){order.deliveredAt=revision;order.deliveredDate=entry.date;order.deliveredTime=entry.time;order.deliveredBy=entry.name}window.SPHERA_updateStatusCard?.(order);window.SPHERA_persistWorkflowState?.(order)}
