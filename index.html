@@ -1481,8 +1481,8 @@ if(typeof checkpointBase==='function'){
    const menu=document.querySelector('.menu'),main=document.querySelector('main.main');if(!menu||!main)return;
    let button=document.getElementById('menuStatistics');
    if(!button){button=document.createElement('button');button.id='menuStatistics';button.className='hide';button.dataset.access='admin';button.innerHTML='<span>Statistici</span><span>06</span>';button.onclick=()=>openPage(button)}
-   const bugButton=document.getElementById('menuBug');
-   if(bugButton){if(button.nextElementSibling!==bugButton)menu.insertBefore(button,bugButton)}else if(!button.parentElement)menu.appendChild(button);
+   const nomenclatorsButton=document.getElementById('menuNomenclators');
+   if(nomenclatorsButton){if(button.nextElementSibling!==nomenclatorsButton)menu.insertBefore(button,nomenclatorsButton)}else if(!button.parentElement)menu.appendChild(button);
    button.classList.toggle('hide',!isStatisticsAdmin());button.style.display=isStatisticsAdmin()?'':'none';
    if(!document.getElementById('statisticsPage')){const page=document.createElement('section');page.id='statisticsPage';page.className='page hide';page.innerHTML=`
     <div class="card statistics-filters">
@@ -3363,7 +3363,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  function warrantyType(order){const product=key([order?.product,order?.design,order?.material].join(' '));if(product.includes('myoless'))return 'myoless';if(product.includes('blend ione')||product.includes('blend i one'))return 'blend';return 'standard'}
  function rootId(order){return text(order?.warrantyRootOrderId||order?.initialOrderId||order?.id)}
  function warrantyAlreadyRegistered(){return false}
- function premiumUsed(order){const root=rootId(order);return warranties.some(item=>item.type==='blendPremium'&&text(item.rootOrderId)===root)||orderList().some(item=>item.warrantyType==='blendPremium'&&text(item.warrantyRootOrderId)===root)}
+ function premiumUsed(order){const root=rootId(order);return warranties.some(item=>item.type==='blendPremium'&&text(item.rootOrderId)===root&&(item.remakeOrderIds||[item.remakeOrderId]).some(id=>!!orderById(id)))}
  function solutionFor(order,newRx,usePremium=false){
    const type=warrantyType(order);
    if(type==='blend'){
@@ -3385,7 +3385,7 @@ document.addEventListener('DOMContentLoaded',()=>{
    if(!document.getElementById('warrantiesPage')){const page=document.createElement('section');page.id='warrantiesPage';page.className='page hide';page.innerHTML='<div class="card"><div class="warranty-head"><div><h2>Garanții</h2><div class="muted">Comenzi refăcute și legătura cu produsele inițiale.</div></div><input id="warrantySearch" type="search" placeholder="Caută după cod, client sau pacient"></div><div class="warranty-grid" id="warrantyList"></div></div>';main.appendChild(page);page.querySelector('#warrantySearch').addEventListener('input',render)}
    const button=document.getElementById('menuWarranties'),visible=canViewWarranties();button.classList.toggle('hide',!visible);button.style.setProperty('display',visible?'inline-flex':'none','important')
  }
- function openPage(button){if(!canViewWarranties())return;document.querySelectorAll('.page').forEach(page=>page.classList.add('hide'));document.getElementById('warrantiesPage')?.classList.remove('hide');document.querySelectorAll('.menu button').forEach(item=>item.classList.remove('active'));button?.classList.add('active');const title=document.getElementById('pageTitle');if(title)title.textContent='Garanții';document.body.classList.remove('mobile-menu-open');render();window.scrollTo(0,0)}
+ function openPage(button){if(!canViewWarranties())return;document.querySelectorAll('.page').forEach(page=>page.classList.add('hide'));document.getElementById('warrantiesPage')?.classList.remove('hide');document.querySelectorAll('.menu button').forEach(item=>item.classList.remove('active'));button?.classList.add('active');const title=document.getElementById('pageTitle');if(title)title.textContent='Garanții';document.body.classList.add('sphera-warranties-page-active');document.body.classList.remove('mobile-menu-open');render();window.scrollTo(0,0)}
  function remakeLinks(item){const ids=item.remakeOrderIds||[item.remakeOrderId],codes=(item.remakeOrderCodes||[item.remakeOrderCode]).filter(Boolean);return '<span class="warranty-remake-codes">'+codes.map((code,index)=>'<button type="button" class="warranty-code-link" onclick="SPHERA_openWarrantyOrder(\''+escHtml(ids[index]||'')+'\',\''+escHtml(code)+'\')">'+escHtml(code)+'</button>').join('')+'</span>'}
  function warrantyDeleteButton(item){if(!isAdminUser())return '';const icon=typeof ICON_TRASH!=='undefined'?ICON_TRASH:'×';return '<button type="button" class="icon-btn red warranty-delete-btn" title="Șterge comanda refăcută" onclick="SPHERA_deleteWarrantyRemakes(\''+escHtml(item.id)+'\')">'+icon+'</button>'}
  function warrantyVisible(item){if(isMasterWarrantyUser())return true;const initial=orderById(item.initialOrderId);return sameWarrantyCenter(initial||{center:item.center})}
@@ -3466,7 +3466,7 @@ document.addEventListener('DOMContentLoaded',()=>{
      const record={id:warrantyId,initialOrderId:initial.id,initialOrderCode:initial.code,remakeOrderId:remakes[0].id,remakeOrderCode:remakes[0].code,remakeOrderIds:remakes.map(item=>item.id),remakeOrderCodes:remakes.map(item=>item.code),rootOrderId:root,center:text(initial.center||initial.processingCenter||initial.responsibleCenter),clientCode:text(initial.client?.code),clientName:text(initial.client?.name),patient:text(initial.patient),product:orderProductLabel(initial),replacementProduct:(requestType==='nonadaptation'?firstSelection:alternate).product||'',firstReplacement:firstSelection,alternateReplacement:differentProduct?alternate:null,differentProduct,secondReplacement:wantsSecond?secondSelection:null,secondPair:wantsSecond,shippingGroupId:requestType==='nonadaptation'&&wantsSecond?warrantyId:'',requestType,type:requestType==='nonadaptation'?'nonadaptation':result.type,requestedAt:new Date().toISOString(),remakeDate,reason,resolution,discountPercent:result.discount,initialRx:initial.rx||{},newRx,growthOD:result.growthOD??null,growthOS:result.growthOS??null,createdByUid:text(user()?.uid),createdByName:text(user()?.name||user()?.username)};
      if(window.SPHERA_DB&&window.SPHERA_AUTH?.currentUser){
        const db=window.SPHERA_DB,warrantyRef=db.collection(COLLECTION).doc(warrantyId),lockRef=db.collection('warrantyLocks').doc(root);
-       await db.runTransaction(async transaction=>{const lock=await transaction.get(lockRef),usesPremium=requestType==='warranty'&&result.type==='blendPremium';if(usesPremium&&lock.exists&&lock.data()?.blendPremiumUsed===true)throw new Error('Garanția Premium a fost deja utilizată pentru acest produs.');transaction.set(warrantyRef,{...record,createdAt:firebase.firestore.FieldValue.serverTimestamp()});remakes.forEach(remake=>transaction.set(db.collection('orders').doc(remake.id),remake,{merge:false}));transaction.set(db.collection('orders').doc(String(initial.id)),{hasWarrantyCase:true,warrantyIds:firebase.firestore.FieldValue.arrayUnion(warrantyId)},{merge:true});transaction.set(lockRef,{rootOrderId:root,blendPremiumUsed:usesPremium||lock.data()?.blendPremiumUsed===true,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})})
+       await db.runTransaction(async transaction=>{const lock=await transaction.get(lockRef),usesPremium=requestType==='warranty'&&result.type==='blendPremium',lockedId=text(lock.data()?.premiumWarrantyId||lock.data()?.warrantyId),lockedRef=lockedId?db.collection(COLLECTION).doc(lockedId):null,lockedWarranty=usesPremium&&lockedRef?await transaction.get(lockedRef):null,validPremiumLock=!!(lockedWarranty?.exists&&lockedWarranty.data()?.type==='blendPremium');if(usesPremium&&validPremiumLock)throw new Error('Garanția Premium a fost deja utilizată pentru acest produs.');transaction.set(warrantyRef,{...record,createdAt:firebase.firestore.FieldValue.serverTimestamp()});remakes.forEach(remake=>transaction.set(db.collection('orders').doc(remake.id),remake,{merge:false}));transaction.set(db.collection('orders').doc(String(initial.id)),{hasWarrantyCase:true,warrantyIds:firebase.firestore.FieldValue.arrayUnion(warrantyId)},{merge:true});transaction.set(lockRef,{rootOrderId:root,blendPremiumUsed:usesPremium||validPremiumLock,premiumWarrantyId:usesPremium?warrantyId:(validPremiumLock?lockedId:''),updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})})
      }
      initial.hasWarrantyCase=true;initial.warrantyIds=[...new Set([...(initial.warrantyIds||[]),warrantyId])];orderList().unshift(...remakes);warranties.unshift(record);writeLocal();if(typeof save==='function')save();modal.remove();if(typeof showOrdersList==='function')showOrdersList('all');else if(typeof render==='function')render();showWarrantyGeneratedCodes(remakes.map(item=>item.code))
    }catch(error){console.error('SPHERA warranty create',error);errorBox.textContent=error?.message||'Garanția nu a putut fi înregistrată.';button.disabled=false;button.textContent='Creează comandă'}
@@ -18430,6 +18430,17 @@ document.addEventListener('click',event=>{if(event.target.closest?.('#menuProces
 .warranty-form .warranty-premium-choice span{display:inline-block!important;width:auto!important;margin:0!important;padding:0!important;line-height:18px!important;white-space:nowrap!important}
 .warranty-form .warranty-premium-choice:has(input:disabled){cursor:default;opacity:.65}
 </style>
+<style id="sphera-v142-warranty-visibility-style">
+.warranty-form .warranty-premium-choice[style*="display: none"]{display:none!important}
+.warranty-form .field:has(#warrantyReason)::after{content:"Sugestii: neacomodare, dioptrii modificate, lentile zgâriate, tratament deteriorat.";display:block;margin-top:5px;color:#667085;font-size:11px;line-height:1.35}
+body.sphera-warranties-page-active #newOrderBtn,
+body.sphera-warranties-page-active #newClientBtn,
+body.sphera-warranties-page-active #offersAddButton,
+body.sphera-warranties-page-active #historyImportBtn,
+body.sphera-warranties-page-active #historyDeleteAllBtn,
+body.sphera-warranties-page-active #historyLoadBtn,
+body.sphera-warranties-page-active #historyLoadBtnV18{display:none!important}
+</style>
 <script id="sphera-v140-authoritative-dashboard-paired-status">
 (function(){
 'use strict';
@@ -18438,7 +18449,9 @@ const key=value=>text(value).toLocaleLowerCase('ro-RO').normalize('NFD').replace
 const list=()=>{try{return window.orders||(typeof orders!=='undefined'?orders:[])||[]}catch(_){return window.orders||[]}};
 const priorShow=window.showPage;
 let frame=0;
-if(typeof priorShow==='function')window.showPage=function(id){const result=priorShow.apply(this,arguments);cancelAnimationFrame(frame);if(String(id)==='dashboard')frame=requestAnimationFrame(()=>{frame=0;const page=document.getElementById('dashboard');if(page&&!page.classList.contains('hide'))window.render?.()});return result};
+if(typeof priorShow==='function')window.showPage=function(id){document.body.classList.remove('sphera-warranties-page-active');const result=priorShow.apply(this,arguments);cancelAnimationFrame(frame);if(String(id)==='dashboard')frame=requestAnimationFrame(()=>{frame=0;const page=document.getElementById('dashboard');if(page&&!page.classList.contains('hide'))window.render?.()});return result};
+function placeStatistics(){const statistics=document.getElementById('menuStatistics'),nomenclators=document.getElementById('menuNomenclators');if(statistics&&nomenclators&&statistics.nextElementSibling!==nomenclators)nomenclators.parentNode?.insertBefore(statistics,nomenclators)}
+placeStatistics();document.addEventListener('DOMContentLoaded',placeStatistics,{once:true});
 const priorCheckpoint=window.SPHERA_applyCheckpoint,locks=new Set();
 function operatorEntry(){const user=window.currentUser||(typeof currentUser!=='undefined'?currentUser:{})||{},now=new Date();return{name:text(user.name||user.displayName||user.username)||'Utilizator',username:text(user.username),uid:text(user.uid||user.id),role:text(user.role),center:text(user.center),at:now.toISOString(),date:now.toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit',year:'numeric'}),time:now.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})}}
 function updatePeer(order,status,revision){const entry=operatorEntry();if(!order.workflowChecks||typeof order.workflowChecks!=='object'||Array.isArray(order.workflowChecks))order.workflowChecks={};order.workflowChecks[status]=entry;order.workflowStatus=status;order.status=key(status)==='livrata'?'Livrată':'Lansată';order.workflowUpdatedAt=entry.at;order.statusUpdatedAt=entry.at;order.workflowUpdatedBy=entry.uid||entry.username||entry.name;order.workflowRevision=revision;order.workflowUpdatedAtMs=revision;if(key(status)==='livrata'){order.deliveredAt=revision;order.deliveredDate=entry.date;order.deliveredTime=entry.time;order.deliveredBy=entry.name}window.SPHERA_updateStatusCard?.(order);window.SPHERA_persistWorkflowState?.(order)}
