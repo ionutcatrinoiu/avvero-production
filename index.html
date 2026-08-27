@@ -14815,7 +14815,8 @@ body.partner-account #recentClientsBox{display:none!important}
     const after=String(order?.workflowStatus||order?.status||'');
 
     if(String(window.SPHERA_statusFilter||'all')!=='all'&&after!==before&&after===String(status)){
-      window.SPHERA_renderStatusOrders();
+      const card=document.querySelector('#processingOrdersList [data-checkpoint-order="'+CSS.escape(String(id))+'"]')?.closest('.workflow-order');
+      if(card)card.dataset.statusAdvancedOutsideFilter='true';
     }
     return result;
   };
