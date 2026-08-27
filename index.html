@@ -1320,6 +1320,67 @@ pointer-events:none;
 }
 
 </style>
+<style id="sphera-v137-live-performance-style">
+#menuStatistics{display:none!important}
+body.sphera-statistics-admin #menuStatistics{display:flex!important}
+.page.hide{display:none!important}
+#dashboard,#processingPage,#clientsPage,#statisticsPage{contain:layout style}
+</style>
+<script id="sphera-v137-live-performance-script">
+(function(){
+ 'use strict';
+ const clean=value=>String(value||'').trim().toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+ const user=()=>{try{return window.currentUser||(typeof currentUser!=='undefined'?currentUser:null)||{}}catch(_){return window.currentUser||{}}};
+ const admin=()=>['admin','administrator'].includes(clean(user().role));
+ const visible=id=>{const element=document.getElementById(id);return !!element&&!element.classList.contains('hide')};
+ function syncStatisticsAccess(){
+   const allowed=admin(),button=document.getElementById('menuStatistics'),page=document.getElementById('statisticsPage');
+   document.body.classList.toggle('sphera-statistics-admin',allowed);
+   if(button){button.classList.toggle('hide',!allowed);button.hidden=!allowed;button.setAttribute('aria-hidden',allowed?'false':'true')}
+   if(!allowed&&page&&!page.classList.contains('hide'))window.showPage('dashboard',document.getElementById('menuDashboard'));
+ }
+ function defer(task){
+   requestAnimationFrame(()=>{if('requestIdleCallback' in window)requestIdleCallback(task,{timeout:100});else setTimeout(task,0)});
+ }
+ window.showPage=function(id,button){
+   syncStatisticsAccess();
+   if(id==='statisticsPage'&&!admin())id='dashboard';
+   if(['nomenclators','settings'].includes(id)&&!admin())id='dashboard';
+   if(id==='historyPage'&&typeof window.canUseHistory==='function'&&!window.canUseHistory())id='dashboard';
+   let page=document.getElementById(id);
+   if(!page){id='dashboard';page=document.getElementById(id)}
+   document.querySelectorAll('.page').forEach(item=>item.classList.toggle('hide',item!==page));
+   const buttons=[...document.querySelectorAll('.menu button')];buttons.forEach(item=>item.classList.remove('active'));
+   if(!button||button.hidden)button=buttons.find(item=>(item.getAttribute('onclick')||'').includes("'"+id+"'"));
+   if(!button&&id==='dashboard')button=document.getElementById('menuDashboard');
+   button?.classList.add('active');
+   const title=document.getElementById('pageTitle'),titles={dashboard:'Dashboard RX',processingPage:'Status comenzi',clientsPage:'Clienți',clientOffersPage:'Oferte clienți',historyPage:'Istoric comenzi',nomenclators:'Nomenclatoare',settings:'Setări',statisticsPage:'Statistici'};
+   if(title&&titles[id])title.textContent=titles[id];
+   document.body.classList.toggle('sphera-history-page-active',id==='historyPage');
+   document.body.classList.remove('mobile-menu-open');
+   window.scrollTo({top:0,left:0,behavior:'instant'});
+   try{window.SPHERA_cancelHistoryLoad?.();window.SPHERA_syncHistoryActions?.();window.syncPageActions?.()}catch(_){}
+   defer(()=>{
+     try{
+       if(id==='processingPage'){
+         const box=document.getElementById('processingOrdersList')||document.getElementById('processingOrders');
+         if(!box||!box.children.length)window.SPHERA_renderStatusOrders?.();
+       }else if(id==='clientsPage'){
+         const box=document.getElementById('clientRows');if(!box||!box.children.length)window.renderClients?.();
+       }else if(id==='dashboard'){
+         const box=document.getElementById('orderRows');if(!box||!box.children.length)window.render?.();
+       }else if(id==='settings'){
+         const box=document.getElementById('usersAdminList')||document.getElementById('usersList');if(!box||!box.children.length)window.renderUsersAdmin?.();
+       }
+     }catch(error){console.error('SPHERA navigation render',error)}
+   });
+   return page;
+ };
+ document.addEventListener('click',event=>{if(event.target.closest?.('#menuStatistics')&&!admin()){event.preventDefault();event.stopImmediatePropagation();syncStatisticsAccess()}},true);
+ function boot(){syncStatisticsAccess();const app=document.getElementById('appScreen');if(app)new MutationObserver(syncStatisticsAccess).observe(app,{attributes:true,attributeFilter:['style','class']})}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script>
 <style id="sphera-v136-admin-statistics-style">
 #statisticsPage{min-width:0;max-width:100%}
 .statistics-filters{display:grid;grid-template-columns:1.25fr repeat(4,minmax(145px,1fr)) auto;gap:12px;align-items:end;padding:16px;margin-bottom:16px}
@@ -1341,7 +1402,7 @@ pointer-events:none;
  const key=value=>text(value).toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
  const escHtml=value=>text(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
  const account=()=>{try{return window.currentUser||(typeof currentUser!=='undefined'?currentUser:null)||{}}catch(_){return window.currentUser||{}}};
- const isStatisticsAdmin=()=>{const user=account();return [user.role,user.permissionTemplate,user.type,user.accountType,user.profile,user.userType,user.username].map(key).some(value=>value==='admin'||value==='administrator'||value.startsWith('administrator '))};
+ const isStatisticsAdmin=()=>{const user=account(),role=key(user.role);return role==='admin'||role==='administrator'};
  function orderSource(){try{return Array.isArray(orders)?orders:(Array.isArray(window.orders)?window.orders:[])}catch(_){return Array.isArray(window.orders)?window.orders:[]}}
  function parseDate(value){if(!value)return null;const raw=text(value),date=new Date(/^\d{4}-\d{2}-\d{2}$/.test(raw)?raw+'T12:00:00':raw);return Number.isNaN(date.getTime())?null:date}
  function dateKey(value){const date=parseDate(value);if(!date)return '';return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0')}
@@ -1413,7 +1474,7 @@ pointer-events:none;
  function exportCsv(){const rows=detailData(activeOrders()),header=['Cod inițial','Cod refăcut','Data','Centru','Client','Produs','Tip','Discount','Motiv'],csv='\uFEFF'+[header,...rows.map(row=>[row.initialCode,row.remakeCode,roDate(row.date),row.center,row.client,row.product,row.type,row.discount+'%',row.reason])].map(row=>row.map(csvCell).join(';')).join('\r\n'),blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='SPHERA_statistici_'+dateKey(new Date())+'.csv';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
  function render(){if(!isStatisticsAdmin())return;refreshCenters();syncControls();const list=activeOrders();renderKpis(list);renderTypes(list);renderCenters(list);renderProducts(list);renderDetails(list);requestAnimationFrame(()=>drawTrend(list))}
  function openPage(button){if(!isStatisticsAdmin())return;document.querySelectorAll('.page').forEach(page=>page.classList.add('hide'));document.getElementById('statisticsPage')?.classList.remove('hide');document.querySelectorAll('.menu button').forEach(item=>item.classList.remove('active'));button?.classList.add('active');const title=document.getElementById('pageTitle');if(title)title.textContent='Statistici';document.body.classList.remove('mobile-menu-open');render();window.scrollTo(0,0)}
- function boot(){setDefaultRange();ensureUi();const observer=new MutationObserver(()=>ensureUi());observer.observe(document.body,{childList:true,subtree:true});let attempts=0;const timer=setInterval(()=>{ensureUi();if(++attempts>=20)clearInterval(timer)},500)}
+ function boot(){setDefaultRange();ensureUi();const app=document.getElementById('appScreen');if(app)new MutationObserver(()=>ensureUi()).observe(app,{attributes:true,attributeFilter:['style','class']})}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
 </script>
@@ -3356,7 +3417,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  window.SPHERA_addWarrantyDetailsButton=addDetailsButton;
  const priorDetails=window.showOrderDetails;if(typeof priorDetails==='function')window.showOrderDetails=function(id){const result=priorDetails.apply(this,arguments);setTimeout(()=>addDetailsButton(id),160);return result};
  function startSync(){if(syncStarted||!window.SPHERA_DB)return;syncStarted=true;window.SPHERA_DB.collection(COLLECTION).orderBy('requestedAt','desc').limit(2000).onSnapshot(snapshot=>{const merged=new Map([...readLocal(),...warranties].filter(Boolean).map(item=>[text(item.id),item]));snapshot.docs.forEach(doc=>merged.set(text(doc.id),{id:doc.id,...doc.data()}));warranties=[...merged.values()].filter(item=>text(item.id));hydrateWarrantyRecords();writeLocal();render()},error=>console.error('SPHERA warranties sync',error))}
- function boot(){warranties=readLocal();ensureUi();render();startSync();installWarrantyDeleteHook();new MutationObserver(()=>{ensureUi();startSync();installWarrantyDeleteHook()}).observe(document.body,{childList:true,subtree:true});let attempts=0;const timer=setInterval(()=>{ensureUi();startSync();installWarrantyDeleteHook();if(++attempts>=20)clearInterval(timer)},1000)}
+ function boot(){warranties=readLocal();ensureUi();render();startSync();installWarrantyDeleteHook();const app=document.getElementById('appScreen');if(app)new MutationObserver(()=>{ensureUi();startSync();installWarrantyDeleteHook()}).observe(app,{attributes:true,attributeFilter:['style','class']})}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,500),{once:true});else setTimeout(boot,500)
 })();
 </script>
@@ -18268,3 +18329,30 @@ document.addEventListener('click',event=>{if(event.target.closest?.('#menuProces
 #ordersListBox td:first-child b,#ordersListBox td:first-child button{display:block!important;max-width:none!important;white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;font-size:12.5px!important;letter-spacing:-.35px!important}
 @media(max-width:1100px){#ordersListBox td:first-child b,#ordersListBox td:first-child button{font-size:11px!important;letter-spacing:-.45px!important}}
 </style>
+<script id="sphera-v138-final-performance-script">
+(function(){
+ 'use strict';
+ const clean=value=>String(value||'').trim().toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+ const user=()=>{try{return window.currentUser||(typeof currentUser!=='undefined'?currentUser:null)||{}}catch(_){return window.currentUser||{}}};
+ const admin=()=>['admin','administrator'].includes(clean(user().role));
+ function access(){const allowed=admin(),button=document.getElementById('menuStatistics');document.body.classList.toggle('sphera-statistics-admin',allowed);if(button){button.hidden=!allowed;button.classList.toggle('hide',!allowed)}}
+ function later(task){requestAnimationFrame(()=>{'requestIdleCallback' in window?requestIdleCallback(task,{timeout:100}):setTimeout(task,0)})}
+ window.showPage=function(id,button){
+   access();
+   if(id==='statisticsPage'&&!admin()||['nomenclators','settings'].includes(id)&&!admin())id='dashboard';
+   if(id==='historyPage'&&typeof window.canUseHistory==='function'&&!window.canUseHistory())id='dashboard';
+   let page=document.getElementById(id);if(!page){id='dashboard';page=document.getElementById(id)}
+   document.querySelectorAll('.page').forEach(item=>item.classList.toggle('hide',item!==page));
+   const buttons=[...document.querySelectorAll('.menu button')];buttons.forEach(item=>item.classList.remove('active'));
+   if(!button||button.hidden)button=buttons.find(item=>(item.getAttribute('onclick')||'').includes("'"+id+"'"));
+   (button||id==='dashboard'&&document.getElementById('menuDashboard'))?.classList.add('active');
+   const title=document.getElementById('pageTitle'),titles={dashboard:'Dashboard RX',processingPage:'Status comenzi',clientsPage:'Clienți',clientOffersPage:'Oferte clienți',historyPage:'Istoric comenzi',nomenclators:'Nomenclatoare',settings:'Setări',statisticsPage:'Statistici'};if(title&&titles[id])title.textContent=titles[id];
+   document.body.classList.toggle('sphera-history-page-active',id==='historyPage');document.body.classList.remove('mobile-menu-open');window.scrollTo({top:0,left:0,behavior:'instant'});
+   try{window.SPHERA_syncHistoryActions?.();window.syncPageActions?.()}catch(_){}
+   later(()=>{try{if(id==='processingPage'){const box=document.getElementById('processingOrdersList')||document.getElementById('processingOrders');if(!box||!box.children.length)window.SPHERA_renderStatusOrders?.()}else if(id==='clientsPage'){const box=document.getElementById('clientRows');if(!box||!box.children.length)window.renderClients?.()}else if(id==='dashboard'){const box=document.getElementById('orderRows');if(!box||!box.children.length)window.render?.()}else if(id==='settings'){const box=document.getElementById('usersAdminList')||document.getElementById('usersList');if(!box||!box.children.length)window.renderUsersAdmin?.()}}catch(error){console.error('SPHERA navigation render',error)}});
+   return page
+ };
+ document.addEventListener('click',event=>{if(event.target.closest?.('#menuStatistics')&&!admin()){event.preventDefault();event.stopImmediatePropagation();access()}},true);
+ const app=document.getElementById('appScreen');if(app)new MutationObserver(access).observe(app,{attributes:true,attributeFilter:['style','class']});access();
+})();
+</script>
