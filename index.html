@@ -1320,6 +1320,78 @@ pointer-events:none;
 }
 
 </style>
+<script id="sphera-v143-response-performance-engine">
+document.addEventListener('DOMContentLoaded',function(){
+'use strict';
+const visible=id=>{const node=document.getElementById(id);return !!node&&!node.classList.contains('hide')};
+const idle=task=>requestAnimationFrame(()=>{if('requestIdleCallback'in window)requestIdleCallback(task,{timeout:250});else setTimeout(task,0)});
+
+/* Căutările rapide produc o singură randare pentru un grup de taste. */
+function debounceInput(id,render,delay){
+ const input=document.getElementById(id);if(!input)return;
+ let timer=0;
+ input.oninput=()=>{clearTimeout(timer);timer=setTimeout(()=>{if(input.isConnected)render()},delay)};
+}
+debounceInput('q',()=>{window.SPHERA_dashboardPage=1;window.render?.()},90);
+debounceInput('processingSearch',()=>{window.SPHERA_statusPage=1;window.SPHERA_renderStatusOrders?.()},90);
+debounceInput('clientFilter',()=>window.renderClients?.(),110);
+
+/* Paginile păstrează DOM-ul existent. O revenire în meniu nu reconstruiește lista. */
+window.showPage=function(id,button){
+ if(['nomenclators','settings'].includes(id)&&typeof isAdmin==='function'&&!isAdmin())id='dashboard';
+ if(id==='historyPage'&&typeof canUseHistory==='function'&&!canUseHistory())id='dashboard';
+ let page=document.getElementById(id);if(!page){id='dashboard';page=document.getElementById(id)}
+ document.querySelectorAll('.page').forEach(node=>node.classList.toggle('hide',node!==page));
+ const menu=[...document.querySelectorAll('.menu button')];menu.forEach(node=>node.classList.remove('active'));
+ if(!button)button=menu.find(node=>(node.getAttribute('onclick')||'').includes("'"+id+"'"));
+ if(!button&&id==='dashboard')button=menu[0];button?.classList.add('active');
+ const titles={dashboard:'Dashboard RX',processingPage:'Status comenzi',clientsPage:'Clienți',clientOffersPage:'Oferte clienți',historyPage:'Istoric comenzi',warrantiesPage:'Garanții',statisticsPage:'Statistici',nomenclators:'Nomenclatoare',settings:'Setări'};
+ const title=document.getElementById('pageTitle');if(title&&titles[id])title.textContent=titles[id];
+ document.body.classList.toggle('sphera-history-page-active',id==='historyPage');
+ document.body.classList.toggle('sphera-warranties-page-active',id==='warrantiesPage');
+ document.body.classList.remove('mobile-menu-open');window.scrollTo(0,0);
+ try{window.SPHERA_syncHistoryActions?.();window.SPHERA_syncHeaderActions?.();window.syncPageActions?.()}catch(_){}
+ requestAnimationFrame(()=>{
+  if(id==='processingPage'){const box=document.getElementById('processingOrdersList');if(!box?.children.length)window.SPHERA_renderStatusOrders?.()}
+  else if(id==='clientsPage'){const box=document.getElementById('clientRows');if(!box?.children.length)window.renderClients?.()}
+  else if(id==='dashboard'){const box=document.getElementById('orderRows');if(!box?.children.length)window.render?.()}
+  else if(id==='settings'){const box=document.getElementById('usersAdminList')||document.getElementById('usersList');if(!box?.children.length)window.renderUsersAdmin?.()}
+ });
+ return page;
+};
+
+/* Un click pe status înseamnă o actualizare DOM și o singură persistență. */
+const checkpoint=window.SPHERA_applyCheckpoint;
+let statusSaveTimer=0;
+if(typeof checkpoint==='function'){
+ window.SPHERA_applyCheckpoint=function(event,id,status){
+  event?.preventDefault?.();event?.stopPropagation?.();event?.stopImmediatePropagation?.();
+  const list=window.orders||(typeof orders!=='undefined'?orders:[])||[];
+  const order=list.find(item=>String(item.id)===String(id));
+  const before=String(order?.workflowStatus||order?.status||'');
+  const persist=window.SPHERA_persistWorkflowState,saveNow=window.save;
+  window.SPHERA_persistWorkflowState=()=>Promise.resolve(true);window.save=()=>{};
+  let result;
+  try{result=checkpoint.call(this,null,id,status)}finally{window.SPHERA_persistWorkflowState=persist;window.save=saveNow}
+  const after=String(order?.workflowStatus||order?.status||'');
+  if(order&&after!==before){
+   window.SPHERA_updateStatusCard?.(order);
+   persist?.(order);
+   clearTimeout(statusSaveTimer);statusSaveTimer=setTimeout(()=>{try{saveNow?.()}catch(error){console.error('SPHERA status local save',error)}},250);
+   idle(()=>{if(visible('dashboard'))window.render?.()});
+  }
+  return result===undefined?false:result;
+ };
+ window.setWorkflowStatus=(id,status)=>window.SPHERA_applyCheckpoint(null,id,status);
+}
+
+/* Eliberează browserul înaintea operațiilor locale costisitoare. */
+document.addEventListener('visibilitychange',()=>{if(document.hidden)try{localStorage.setItem('rx_orders',JSON.stringify(window.orders||(typeof orders!=='undefined'?orders:[])||[]))}catch(_){}},{passive:true});
+},{once:true});
+</script>
+<style id="sphera-v143-response-performance-style">
+.page.hide{display:none!important}.workflow-order{contain:layout style paint}#processingPage .workflow-step{touch-action:manipulation}
+</style>
 <style id="sphera-v137-live-performance-style">
 #menuStatistics{display:none!important}
 body.sphera-statistics-admin #menuStatistics{display:flex!important}
