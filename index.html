@@ -12567,6 +12567,8 @@ body.partner-account #recentClientsBox{display:none!important}
       ['pages.clients','Clienți','Afișează Clienți și permite accesul la pagină'],
       ['pages.offers','Oferte clienți','Afișează Oferte clienți și permite accesul la pagină'],
       ['pages.history','Istoric comenzi','Afișează Istoric comenzi și permite accesul la pagină'],
+      ['pages.warranties','Garanții','Afișează Garanții pentru Administrator și Operator Garanții'],
+      ['pages.statistics','Statistici','Afișează Statistici pentru Administrator'],
       ['pages.nomenclators','Nomenclatoare','Afișează Nomenclatoare și permite accesul la pagină'],
       ['pages.settings','Setări','Afișează Setări și permite accesul la pagină']
     ]},
@@ -12617,9 +12619,9 @@ body.partner-account #recentClientsBox{display:none!important}
   const allRights=()=>Object.fromEntries(RIGHT_KEYS.map(key=>[key,true]));
   const TEMPLATES={
     admin:{label:'Administrator',description:'Acces complet',role:'admin',scope:{mode:'all',centers:[]},permissions:allRights()},
-    master:{label:'Operator Master',description:'Toate centrele și fluxul RX',role:'iasi',scope:{mode:'all',centers:[]},permissions:rights('pages.dashboard','pages.status','pages.clients','pages.offers','pages.history','dashboard.view','orders.view','orders.create','orders.repeat','orders.editOwn','orders.editAll','orders.status','orders.deliver','orders.delete','orders.history','orders.deleted','orders.export','clients.view','clients.manage','offers.view','offers.manage','offers.upload','legacyHistory.view','legacyHistory.import','legacyHistory.allCenters','warranties.view','bugs.report')},
-    warranty:{label:'Operator Garanții',description:'Drepturi Master și gestionare garanții',role:'iasi',scope:{mode:'all',centers:[]},permissions:rights('pages.dashboard','pages.status','pages.clients','pages.offers','pages.history','dashboard.view','orders.view','orders.create','orders.repeat','orders.editOwn','orders.editAll','orders.status','orders.deliver','orders.delete','orders.history','orders.deleted','orders.export','clients.view','clients.manage','offers.view','offers.manage','offers.upload','legacyHistory.view','legacyHistory.import','legacyHistory.allCenters','warranties.view','warranties.manage','warranties.process','bugs.report')},
-    operator:{label:'Operator',description:'Centrul propriu',role:'operator',scope:{mode:'center',centers:[]},permissions:rights('pages.dashboard','pages.status','pages.clients','pages.offers','pages.history','dashboard.view','orders.view','orders.create','orders.repeat','orders.editOwn','orders.status','orders.deliver','orders.delete','orders.history','orders.export','clients.view','clients.manage','offers.view','legacyHistory.view','legacyHistory.import','warranties.view','bugs.report')},
+    master:{label:'Operator Master',description:'Toate centrele și fluxul RX',role:'iasi',scope:{mode:'all',centers:[]},permissions:rights('pages.dashboard','pages.status','pages.clients','pages.offers','pages.history','dashboard.view','orders.view','orders.create','orders.repeat','orders.editOwn','orders.editAll','orders.status','orders.deliver','orders.delete','orders.history','orders.deleted','orders.export','clients.view','clients.manage','offers.view','offers.manage','offers.upload','legacyHistory.view','legacyHistory.import','legacyHistory.allCenters','bugs.report')},
+    warranty:{label:'Operator Garanții',description:'Drepturi Master și gestionare garanții',role:'iasi',scope:{mode:'all',centers:[]},permissions:rights('pages.dashboard','pages.status','pages.clients','pages.offers','pages.history','pages.warranties','dashboard.view','orders.view','orders.create','orders.repeat','orders.editOwn','orders.editAll','orders.status','orders.deliver','orders.delete','orders.history','orders.deleted','orders.export','clients.view','clients.manage','offers.view','offers.manage','offers.upload','legacyHistory.view','legacyHistory.import','legacyHistory.allCenters','warranties.view','warranties.manage','warranties.process','bugs.report')},
+    operator:{label:'Operator',description:'Centrul propriu',role:'operator',scope:{mode:'center',centers:[]},permissions:rights('pages.dashboard','pages.status','pages.clients','pages.offers','pages.history','dashboard.view','orders.view','orders.create','orders.repeat','orders.editOwn','orders.status','orders.deliver','orders.delete','orders.history','orders.export','clients.view','clients.manage','offers.view','legacyHistory.view','legacyHistory.import','bugs.report')},
     export:{label:'Operator Export',description:'Vizualizare și Excel',role:'viewer',scope:{mode:'selected',centers:[]},permissions:rights('pages.dashboard','pages.status','pages.history','dashboard.view','orders.view','orders.history','orders.export','legacyHistory.view','bugs.report'),hidden:true},
     partner:{label:'Partener',description:'Doar comenzile proprii',role:'partner',scope:{mode:'own',centers:[]},permissions:rights('pages.dashboard','pages.status','dashboard.view','orders.view','orders.create','orders.repeat','orders.deliver','bugs.report')},
     custom:{label:'Personalizat',description:'Drepturi configurate manual',role:'custom',scope:{mode:'own',centers:[]},permissions:blank()}
@@ -12903,7 +12905,9 @@ body.partner-account #recentClientsBox{display:none!important}
     setVisible('menuProcessing',can('pages.status'));
     setVisible('menuHistory',can('pages.history')&&can('legacyHistory.view'));
     setVisible('menuNomenclators',can('pages.nomenclators'));
-    setVisible('menuWarranties',can('warranties.view'));
+    const warrantyAccount=typeof window.SPHERA_IS_WARRANTY_ACCOUNT==='function'&&window.SPHERA_IS_WARRANTY_ACCOUNT(currentUser);
+    setVisible('menuWarranties',warrantyAccount&&can('pages.warranties')&&can('warranties.view'));
+    setVisible('menuStatistics',['admin','administrator'].includes(clean(currentUser?.role))&&can('pages.statistics'));
     setVisible('menuSettings',can('pages.settings'));
     setVisible('newOrderBtn',can('orders.create'));
     setVisible('newClientBtn',can('clients.manage'));
@@ -12928,7 +12932,7 @@ body.partner-account #recentClientsBox{display:none!important}
   window.render=function(){const result=baseRender&&baseRender.apply(this,arguments);setTimeout(applyPermissionUI,0);return result};
   const baseShowPage=window.showPage;
   window.showPage=function(id){
-    const rules={dashboard:'pages.dashboard',clientsPage:'pages.clients',clientOffersPage:'pages.offers',processingPage:'pages.status',historyPage:'pages.history',history:'pages.history',nomenclators:'pages.nomenclators',settings:'pages.settings'};
+    const rules={dashboard:'pages.dashboard',clientsPage:'pages.clients',clientOffersPage:'pages.offers',processingPage:'pages.status',historyPage:'pages.history',history:'pages.history',warrantiesPage:'pages.warranties',statisticsPage:'pages.statistics',nomenclators:'pages.nomenclators',settings:'pages.settings'};
     if(rules[id]&&!can(rules[id])){
       const fallback=[['dashboard','menuDashboard'],['processingPage','menuProcessing'],['clientsPage','menuClients'],['clientOffersPage','menuClientOffers'],['historyPage','menuHistory'],['nomenclators','menuNomenclators'],['settings','menuSettings']].find(item=>can(rules[item[0]])&&document.getElementById(item[1]));
       if(!fallback)return;
@@ -19190,7 +19194,9 @@ setInterval(enforce,500);
 })();
 </script>
 <style id="sphera-stable-role-menu-v20-style">
-body.sphera-v21-no-warranties #menuWarranties{display:none!important;visibility:hidden!important;pointer-events:none!important}
+body.sphera-v21-no-warranties #menuWarranties,
+.side>.menu button[hidden],
+.side>.menu button.hide{display:none!important;position:absolute!important;width:0!important;min-width:0!important;max-width:0!important;height:0!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;gap:0!important;overflow:hidden!important;visibility:hidden!important;pointer-events:none!important}
 </style>
 <script id="sphera-stable-role-menu-v20-script">
 (function(){
@@ -19199,7 +19205,8 @@ const KEY='sphera_warranty_tickets_v1',COLLECTION='warrantyTickets';
 const text=value=>String(value??'').trim();
 const clean=value=>text(value).toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
 const user=()=>{try{return window.currentUser||(typeof currentUser!=='undefined'?currentUser:{})||{}}catch(_){return window.currentUser||{}}};
-function access(){const account=user(),values=[account.permissionTemplate,account.permission_template,account.role,account.accountType,account.type].map(clean);return values.some(value=>['admin','administrator','warranty','operator garantii','operator garantii custom','operator-garantii'].includes(value))}
+window.SPHERA_IS_WARRANTY_ACCOUNT=function(account){const values=[account?.permissionTemplate,account?.permission_template,account?.role,account?.accountType,account?.type].map(clean);return values.some(value=>['admin','administrator','warranty','operator garantii','operator garantii custom','operator-garantii'].includes(value))};
+function access(){return window.SPHERA_IS_WARRANTY_ACCOUNT(user())}
 function syncMenu(){const allowed=access(),menu=document.getElementById('menuWarranties'),body=document.body;if(!body)return;body.classList.toggle('sphera-v21-no-warranties',!allowed);if(allowed){body.classList.remove('sphera-standard-operator','sphera-v18-hide-warranties','sphera-no-warranty-page','sphera-no-warranty-header','sphera-master-no-warranty','sphera-v20-no-warranties');if(menu){menu.hidden=false;menu.removeAttribute('aria-hidden');menu.classList.remove('hide');menu.style.setProperty('display','inline-flex','important');menu.style.setProperty('visibility','visible','important');menu.style.setProperty('pointer-events','auto','important')}}else{if(menu){menu.hidden=true;menu.setAttribute('aria-hidden','true');menu.classList.add('hide');menu.style.setProperty('display','none','important');menu.style.setProperty('visibility','hidden','important');menu.style.setProperty('pointer-events','none','important')}const page=document.getElementById('warrantiesPage');if(page&&!page.classList.contains('hide')){page.classList.add('hide');document.getElementById('dashboard')?.classList.remove('hide')}}}
 window.SPHERA_SYNC_WARRANTY_MENU=syncMenu;
 function tickets(){try{const list=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(list)?list:[]}catch(_){return[]}}
