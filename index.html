@@ -5,6 +5,99 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1, maximum-scale=1" name="viewport"/>
 <title>AVVERO | SPHERA - Smart Lenses Ordering</title>
+<script id="sphera-v40-runtime-budget">
+(()=>{'use strict';
+const nativeInterval=window.setInterval.bind(window),nativeTimeout=window.setTimeout.bind(window),nativeClearTimeout=window.clearTimeout.bind(window),nativeAddEvent=document.addEventListener.bind(document),NativeObserver=window.MutationObserver;
+const deferredStartup=[],deferredTimers=new Map();let deferredTimerId=-1,startupReleased=false;
+const authenticated=()=>{const u=account();return !!(u.uid||u.id||u.username||u.email)};
+const featureOwner=()=>{const id=document.currentScript?.id||'';return /^sphera-/i.test(id)&&id!=='sphera-v40-runtime-budget'};
+function flushStartup(){if(startupReleased)return;startupReleased=true;const event=new Event('DOMContentLoaded');deferredStartup.splice(0).forEach(task=>{try{task.call(document,event)}catch(error){console.error(error)}});for(const [id,task] of deferredTimers){deferredTimers.delete(id);nativeTimeout(task.callback,Math.min(Math.max(Number(task.delay)||0,0),250),...task.args)}}
+document.addEventListener=function(type,listener,options){if(type==='DOMContentLoaded'&&featureOwner()&&!authenticated()){const wrapped=function(event){if(authenticated()||startupReleased)return listener.call(this,event);deferredStartup.push(listener)};return nativeAddEvent(type,wrapped,options)}return nativeAddEvent(type,listener,options)};
+window.setTimeout=function(callback,delay){const args=[...arguments].slice(2);if(featureOwner()&&!authenticated()&&!startupReleased&&typeof callback==='function'){const id=deferredTimerId--;deferredTimers.set(id,{callback,delay,args});return id}return nativeTimeout(callback,delay,...args)};
+window.clearTimeout=function(id){if(deferredTimers.delete(id))return;return nativeClearTimeout(id)};
+nativeAddEvent('sphera:user-ready',flushStartup);
+const normalize=v=>String(v??'').trim().toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ș/g,'s').replace(/ț/g,'t');
+function account(){try{return window.currentUser||(typeof currentUser!=='undefined'?currentUser:{})||{}}catch(_){return window.currentUser||{}}}
+function light(){const u=account(),values=[u.role,u.permissionTemplate,u.permission_template,u.accountType,u.type].map(normalize);return values.some(v=>['operator','custom','iasi','master','operator master','operator-master'].includes(v))&&!values.some(v=>['admin','administrator','warranty','operator garantii','operator-garantii'].includes(v))&&!u.permissions?.['warranties.manage']}
+window.SPHERA_IS_LIGHT_ACCOUNT=light;
+const backgroundIntervals=new Set(['sphera-role-ticket-visibility-v16-script','sphera-warranty-access-ticket-stats-v18-script','sphera-ticket-final-v8-script','sphera-warranty-role-label-v1','sphera-ticket-experience-v2-script','sphera-ticket-admin-v4-script','sphera-ticket-final-v5-script','sphera-ticket-final-v6-script','sphera-ticket-final-v10-script','sphera-ticket-prefill-live-v11-script','sphera-ticket-search-cascade-v12-script','sphera-dashboard-tickets-access-v13-script','sphera-dashboard-ticket-parity-v14-script','sphera-ticket-dashboard-live-v17-script']);
+const eventDrivenIntervals=new Set(['sphera-ticket-experience-v2-script','sphera-ticket-admin-v4-script','sphera-ticket-final-v5-script','sphera-ticket-final-v6-script','sphera-ticket-final-v10-script','sphera-ticket-prefill-live-v11-script','sphera-ticket-search-cascade-v12-script','sphera-dashboard-tickets-access-v13-script','sphera-dashboard-ticket-parity-v14-script','sphera-ticket-dashboard-live-v17-script']);
+window.setInterval=function(callback,delay){const owner=document.currentScript?.id||'',args=[...arguments].slice(2);if(eventDrivenIntervals.has(owner))return 0;if(typeof callback!=='function')return nativeInterval(callback,delay,...args);const wrapped=function(){if(document.hidden)return;if(light()&&backgroundIntervals.has(owner))return;return callback.apply(this,arguments)};return nativeInterval(wrapped,Math.max(Number(delay)||0,1000),...args)};
+const redundantObservers=new Set(['sphera-ticket-experience-v2-script','sphera-v39-permanent-delete-controls-script']);
+if(NativeObserver){window.MutationObserver=class SpheraBudgetObserver{constructor(callback){this.targets=[];this.frame=0;this.pending=null;this.disabled=redundantObservers.has(document.currentScript?.id||'');this.native=this.disabled?null:new NativeObserver((mutations,observer)=>{const login=document.getElementById('loginScreen'),u=account();if(login&&!login.classList.contains('hide')&&!login.hidden&&!(u.uid||u.id||u.username||u.email))return;if(!light()){callback(mutations,observer);return}const active=this.targets.some(target=>{const page=target?.closest?.('.page,.main>section');return !page||(!page.classList.contains('hide')&&!page.hidden)});if(!active)return;this.pending=mutations;if(this.frame)return;this.frame=requestAnimationFrame(()=>{this.frame=0;const batch=this.pending;this.pending=null;if(batch)callback(batch,this)})})}observe(target,options){if(this.disabled)return this;if(target&&!this.targets.includes(target))this.targets.push(target);return this.native.observe(target,options)}disconnect(){this.targets=[];if(this.frame)cancelAnimationFrame(this.frame);this.frame=0;this.pending=null;return this.native?.disconnect()}takeRecords(){return this.native?.takeRecords()||[]}}}
+document.addEventListener('input',event=>{if(event.target?.matches?.('#loginScreen input'))event.stopImmediatePropagation()},true);
+function mark(){document.body?.classList.toggle('sphera-v40-light-runtime',light())}
+document.addEventListener('DOMContentLoaded',mark,{once:true});document.addEventListener('sphera:user-ready',mark);setTimeout(mark,0);
+})();
+</script>
+<style id="sphera-v52-final-integrity-style">
+#rememberWrap,.remember-row,#rememberMe,label[for="rememberMe"]{display:none!important}
+body.login-active *,body.login-active *::before,body.login-active *::after{animation:none!important;transition:none!important}
+#dashboardTicketsCard .ticket-collapse,#warrantiesPage .ticket-collapse{position:relative!important;color:#165dff!important;font-size:0!important;line-height:0!important}
+#dashboardTicketsCard .ticket-collapse svg,#warrantiesPage .ticket-collapse svg{display:none!important}
+#dashboardTicketsCard .ticket-collapse::before,#warrantiesPage .ticket-collapse::before{content:""!important;position:absolute!important;left:50%!important;top:50%!important;display:block!important;width:9px!important;height:9px!important;margin:0!important;border:0!important;border-left:2px solid currentColor!important;border-top:2px solid currentColor!important;transform:translate(-50%,-35%) rotate(45deg)!important;transform-origin:center!important}
+#dashboardTicketsCard .ticket-collapse[aria-expanded="false"]::before,#warrantiesPage .ticket-collapse[aria-expanded="false"]::before{transform:translate(-50%,-65%) rotate(225deg)!important}
+</style>
+<script id="sphera-v52-final-integrity-script">
+(()=>{'use strict';
+const TKEY='sphera_warranty_tickets_v1',WKEY='sphera_warranties_v1',OKEY='rx_orders',text=value=>String(value??'').trim(),key=value=>text(value).toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+const read=name=>{try{const value=JSON.parse(localStorage.getItem(name)||'[]');return Array.isArray(value)?value:[]}catch(_){return[]}},write=(name,value)=>localStorage.setItem(name,JSON.stringify(value));
+const orderList=()=>{try{return Array.isArray(orders)?orders:(Array.isArray(window.orders)?window.orders:read(OKEY))}catch(_){return Array.isArray(window.orders)?window.orders:read(OKEY)}};
+const records=()=>read(WKEY),tickets=()=>read(TKEY);
+const linkedRecords=ticket=>records().filter(record=>text(record.ticketId)===text(ticket.id)||text(record.initialOrderId)===text(ticket.orderId)||text(record.initialOrderCode)===text(ticket.orderCode));
+const linkedTickets=record=>tickets().filter(ticket=>text(ticket.id)===text(record.ticketId)||text(ticket.orderId)===text(record.initialOrderId)||text(ticket.orderCode)===text(record.initialOrderCode));
+const linkedIds=record=>[...(record.remakeOrderIds||[]),record.remakeOrderId].map(text).filter(Boolean),linkedCodes=record=>[...(record.remakeOrderCodes||[]),record.remakeOrderCode].map(text).filter(Boolean);
+function refresh(){document.dispatchEvent(new CustomEvent('sphera:tickets-updated'));document.dispatchEvent(new CustomEvent('sphera:warranties-updated'));document.dispatchEvent(new CustomEvent('sphera:orders-updated'));try{window.render?.()}catch(_){} }
+async function remoteSet(collection,id,value){if(!id||!window.SPHERA_DB)return;try{await window.SPHERA_DB.collection(collection).doc(text(id)).set(value,{merge:true})}catch(error){console.error('SPHERA v52 update',collection,id,error)}}
+async function remoteDelete(collection,id){if(!id||!window.SPHERA_DB)return;try{await window.SPHERA_DB.collection(collection).doc(text(id)).delete()}catch(error){console.error('SPHERA v52 delete',collection,id,error)}}
+function reconcileTickets(){const list=tickets();let changed=false;for(const ticket of list){const matches=linkedRecords(ticket);if(!matches.length)continue;const codes=[...new Set(matches.flatMap(linkedCodes))];if(key(ticket.status)!=='created'||JSON.stringify(ticket.remakeOrderCodes||[])!==JSON.stringify(codes)){ticket.status='created';ticket.completedAt=ticket.completedAt||new Date().toISOString();ticket.updatedAt=new Date().toISOString();ticket.remakeOrderCodes=codes;changed=true;remoteSet('warrantyTickets',ticket.__docId||ticket.id,{status:'created',completedAt:ticket.completedAt,updatedAt:ticket.updatedAt,remakeOrderCodes:codes})}}
+ if(changed){write(TKEY,list);refresh()}
+ document.querySelectorAll('#warrantyTicketsHost .ticket-card,#dashboardTicketsCard .ticket-card').forEach(card=>{const id=text(card.dataset.ticketId),ticket=list.find(item=>text(item.id)===id);if(ticket&&linkedRecords(ticket).length)card.querySelectorAll('.ticket-process-action,button[onclick*="SPHERA_processWarrantyTicket"]').forEach(button=>button.remove())})
+}
+function fixCollapse(){document.querySelectorAll('#dashboardTicketsCard .ticket-collapse').forEach(button=>{const body=button.closest('#dashboardTicketsCard')?.querySelector('.dashboard-ticket-body'),expanded=!body?.classList.contains('hide');button.setAttribute('aria-expanded',expanded?'true':'false');button.setAttribute('aria-label',expanded?'Ascunde lista':'Afișează lista');button.title=button.getAttribute('aria-label')})}
+function removeRemember(){document.querySelectorAll('#rememberWrap,.remember-row,#rememberMe,label[for="rememberMe"]').forEach(node=>node.remove());localStorage.removeItem('sphera_remembered_user');localStorage.removeItem('sphera_remembered_pass')}
+const processing=new Set();
+function installProcessGuard(){const base=window.SPHERA_processWarrantyTicket;if(typeof base!=='function'||base.__spheraV52)return;const guarded=function(id){const ticket=tickets().find(item=>text(item.id)===text(id));if(!ticket)return;if(linkedRecords(ticket).length||['approved','created'].includes(key(ticket.status))){reconcileTickets();window.SPHERA_viewWarrantyTicket?.(id);return}if(processing.has(text(id)))return;processing.add(text(id));const result=base.apply(this,arguments);setTimeout(()=>{const current=tickets().find(item=>text(item.id)===text(id));if(!current||!['approved','created'].includes(key(current.status)))processing.delete(text(id))},1200);return result};guarded.__spheraV52=true;window.SPHERA_processWarrantyTicket=guarded}
+function installWarrantyOpenGuard(){const base=window.SPHERA_openWarrantyForm;if(typeof base!=='function'||base.__spheraV52)return;const guarded=function(orderId){const order=orderList().find(item=>text(item.id)===text(orderId)),existing=records().find(record=>text(record.initialOrderId)===text(orderId)||text(record.initialOrderCode)===text(order?.code));if(existing){reconcileTickets();const ticket=linkedTickets(existing)[0];if(ticket)window.SPHERA_viewWarrantyTicket?.(ticket.id);return}return base.apply(this,arguments)};guarded.__spheraV52=true;window.SPHERA_openWarrantyForm=guarded}
+document.addEventListener('click',event=>{const button=event.target.closest?.('.warranty-modal .ok');if(!button||button.disabled)return;if(button.dataset.v52Submitting==='1'){event.preventDefault();event.stopImmediatePropagation();return}button.dataset.v52Submitting='1';button.disabled=true;button.textContent='Se creează...'},true);
+async function purgeWarranty(record){const ids=linkedIds(record),codes=linkedCodes(record),allOrders=orderList(),targets=allOrders.filter(order=>ids.includes(text(order.id))||codes.includes(text(order.code))),related=linkedTickets(record),initial=allOrders.find(order=>text(order.id)===text(record.initialOrderId)||text(order.code)===text(record.initialOrderCode));
+ const removeIds=new Set(targets.map(order=>text(order.id)));for(let index=allOrders.length-1;index>=0;index--)if(removeIds.has(text(allOrders[index]?.id)))allOrders.splice(index,1);write(OKEY,allOrders);write(WKEY,records().filter(item=>text(item.id)!==text(record.id)));write(TKEY,tickets().filter(ticket=>!related.some(item=>text(item.id)===text(ticket.id))));
+ if(initial){initial.warrantyIds=(initial.warrantyIds||[]).filter(id=>text(id)!==text(record.id));initial.hasWarrantyCase=initial.warrantyIds.length>0}
+ await Promise.all([...targets.map(order=>remoteDelete('orders',order.__docId||order.id)),remoteDelete('warranties',record.__docId||record.id),...related.map(ticket=>remoteDelete('warrantyTickets',ticket.__docId||ticket.id)),initial?remoteSet('orders',initial.__docId||initial.id,{hasWarrantyCase:initial.hasWarrantyCase,warrantyIds:initial.warrantyIds}):Promise.resolve()]);refresh()
+}
+function installDeleteCascade(){const remove=function(warrantyId){const record=records().find(item=>text(item.id)===text(warrantyId));if(!record)return;window.showAppConfirm?.({title:'Șterge comanda refăcută',text:'Ștergi comanda refăcută și tichetul asociat?',confirmText:'Șterge',cancelText:'Anulează',danger:true,onConfirm:()=>purgeWarranty(record)})};remove.__spheraV52=true;window.SPHERA_deleteWarrantyRemakes=remove;window.SPHERA_deleteWarrantyRemakesV4=remove}
+let interactionUntil=0;
+document.addEventListener('pointerdown',event=>{if(event.isTrusted&&event.target.closest?.('button,.card,[role="button"],a,input,select'))interactionUntil=performance.now()+700},true);
+function installStableRender(){const base=window.render;if(typeof base!=='function'||base.__spheraV52)return;let timer=0,pendingArgs=null;const stable=function(){pendingArgs=arguments;const dashboard=document.getElementById('dashboard'),direct=performance.now()<interactionUntil;if(!dashboard||dashboard.classList.contains('hide')||direct){clearTimeout(timer);timer=0;return base.apply(this,arguments)}clearTimeout(timer);timer=setTimeout(()=>{timer=0;base.apply(window,pendingArgs||[])},280)};stable.__spheraV52=true;stable.__spheraV52Base=base;window.render=stable}
+function install(){removeRemember();installProcessGuard();installWarrantyOpenGuard();installDeleteCascade();installStableRender();reconcileTickets();fixCollapse()}
+window.SPHERA_V52_INSTALL=install;
+let frame=0;function schedule(){if(frame)return;frame=requestAnimationFrame(()=>{frame=0;install();fixCollapse();reconcileTickets()})}
+document.addEventListener('DOMContentLoaded',install,{once:true});document.addEventListener('sphera:user-ready',install);document.addEventListener('sphera:tickets-updated',schedule);document.addEventListener('sphera:warranties-updated',schedule);document.addEventListener('click',event=>{if(event.target.closest?.('#menuDashboard,#menuWarranties,#dashboardTicketsCard .ticket-collapse'))setTimeout(schedule,0)},true);setTimeout(install,0);
+})();
+</script>
+<script id="sphera-v44-nomenclators-render-fix">
+(()=>{'use strict';
+function safe(value){try{return typeof esc==='function'?esc(value):String(value??'').replace(/[&<>"']/g,character=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]))}catch(_){return String(value??'')}}
+function quote(value){return String(value??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
+function renderNomenclators(){
+ const page=document.getElementById('nomenclators');if(!page||page.classList.contains('hide'))return;
+ const products=document.getElementById('prodList'),indices=document.getElementById('idxList'),materials=document.getElementById('matList'),treatments=document.getElementById('trList');
+ if(products&&typeof PRODUCTS!=='undefined')products.innerHTML=Object.keys(PRODUCTS).map(product=>{const encoded=btoa(unescape(encodeURIComponent(product))).replace(/=/g,''),designs=Array.isArray(PRODUCTS[product])?PRODUCTS[product]:[],p=quote(product);return `<div class="item"><div class="item-row"><div><b>${safe(product)}</b><div class="chips">${designs.map(design=>`<span class="chip">${safe(design)}<button class="mini red" tabindex="-1" onclick="deleteDesign('${p}','${quote(design)}')">×</button></span>`).join('')||'<span class="muted">Fără produse</span>'}</div></div><button class="icon-btn red" tabindex="-1" title="Șterge design" onclick="deleteProduct('${p}')">${typeof ICON_TRASH!=='undefined'?ICON_TRASH:'×'}</button></div><div class="design-editor"><input id="design_${encoded}" placeholder="Produs nou pentru ${safe(product)}"><button class="mini" onclick="addDesign('${p}')">Adaugă produs</button></div></div>`}).join('');
+ const simple=(element,list,name)=>{if(!element||!Array.isArray(list))return;element.innerHTML=list.map(value=>`<div class="item item-row"><b>${safe(value)}</b><button class="icon-btn red" tabindex="-1" title="Șterge" onclick="deleteSimple('${name}','${quote(value)}')">${typeof ICON_TRASH!=='undefined'?ICON_TRASH:'×'}</button></div>`).join('')};
+ simple(indices,typeof INDICES!=='undefined'?INDICES:[],'INDICES');simple(materials,typeof MATERIALS!=='undefined'?MATERIALS:[],'MATERIALS');simple(treatments,typeof TREATMENTS!=='undefined'?TREATMENTS:[],'TREATMENTS');
+}
+window.SPHERA_renderNomenclators=renderNomenclators;
+document.addEventListener('click',event=>{if(event.target.closest?.('#menuNomenclators')){setTimeout(renderNomenclators,0);setTimeout(renderNomenclators,250)}},true);
+const baseShow=window.showPage;if(typeof baseShow==='function')window.showPage=function(id){const result=baseShow.apply(this,arguments);if(String(id)==='nomenclators')requestAnimationFrame(renderNomenclators);return result};
+document.addEventListener('DOMContentLoaded',()=>setTimeout(renderNomenclators,0),{once:true});
+})();
+</script>
+<style id="sphera-v40-runtime-budget-style">
+body.sphera-v40-light-runtime{scroll-behavior:auto!important}
+body.sphera-v40-light-runtime #orderRows tr,body.sphera-v40-light-runtime #processingOrdersList .workflow-order,body.sphera-v40-light-runtime .dashboard-ticket-row{content-visibility:auto;contain:layout style paint;contain-intrinsic-size:68px}
+body.sphera-v40-light-runtime .card,body.sphera-v40-light-runtime .workflow-order,body.sphera-v40-light-runtime .order-card{backdrop-filter:none!important;animation:none!important;transition:none!important}
+body.sphera-v40-light-runtime .card{box-shadow:0 8px 24px rgba(10,37,76,.07)!important}
+</style>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
@@ -1591,7 +1684,7 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(decorate,1200),{once
  function typeLabel(type){return type==='nonadaptation'?'Neacomodare':'Garanție produs'}
  async function persist(ticket){
   ticket.updatedAt=new Date().toISOString();
-  const index=tickets.findIndex(item=>text(item.id)===text(ticket.id));if(index>=0)tickets[index]={...tickets[index],...ticket};else tickets.unshift(ticket);writeLocal();render();
+  const index=tickets.findIndex(item=>text(item.id)===text(ticket.id));if(index>=0)tickets[index]={...tickets[index],...ticket};else tickets.unshift(ticket);writeLocal();render();document.dispatchEvent(new CustomEvent('sphera:tickets-updated'));
   if(window.SPHERA_DB){try{await window.SPHERA_DB.collection(COLLECTION).doc(text(ticket.id)).set(ticket,{merge:true})}catch(error){console.error('SPHERA ticket save',error)}}
  }
  function ensurePage(){
@@ -1619,7 +1712,7 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(decorate,1200),{once
   if(key(order.workflowStatus||order.status)!=='livrata'){if(typeof showAppConfirm==='function')showAppConfirm({title:'Comandă nelivrată',text:'Poți solicita garanție doar pentru o comandă livrată.',confirmText:'OK'});return}
   const modal=showModal('<div class="top"><div><div class="muted">Comanda '+escHtml(order.code)+'</div><div class="step-title">Solicită garanție sau neacomodare</div></div></div><div class="ticket-form-grid"><div class="field"><label>Tip solicitare</label><select id="ticketType"><option value="warranty">Garanție produs</option><option value="nonadaptation">Neacomodare</option></select></div><div class="field"><label>Produs</label><input value="'+escHtml([order.product,order.design,order.index,order.treatment].filter(Boolean).join(' · '))+'" disabled></div><div class="field wide"><label>Motivul solicitării</label><input id="ticketReason" placeholder="Descrie pe scurt problema"></div><div class="field wide"><label>Detalii pentru Operator Garanții</label><textarea id="ticketDetails" placeholder="Descrie problema, verificările făcute și soluția solicitată"></textarea></div></div><div class="err" id="ticketError"></div><div class="alert-actions"><button class="btn cancel">Anulează</button><button class="btn ok">Trimite solicitarea</button></div>');
   modal.querySelector('.cancel').onclick=()=>modal.remove();modal.addEventListener('pointerdown',event=>{if(event.target===modal)modal.remove()});
-  modal.querySelector('.ok').onclick=async()=>{const reason=text(modal.querySelector('#ticketReason').value),details=text(modal.querySelector('#ticketDetails').value);if(reason.length<3){modal.querySelector('#ticketError').textContent='Completează motivul solicitării.';return}const stamp=Date.now(),user=account()||{},ticket={id:'WT'+stamp,number:'TIC '+String(stamp).slice(-6),orderId:text(order.id),orderCode:text(order.code),center:centerOf(order),clientName:text(order.client?.name),clientCode:text(order.client?.code),patient:text(order.patient),product:[order.product,order.design,order.index,order.treatment].filter(Boolean).join(' · '),requestType:modal.querySelector('#ticketType').value,reason,details,status:'new',messages:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),createdByUid:text(user.uid),createdByName:text(user.name||user.username),createdByRole:text(user.role)};modal.querySelector('.ok').disabled=true;await persist(ticket);modal.remove();if(typeof showAppConfirm==='function')showAppConfirm({title:'Solicitare trimisă',text:'Tichetul '+ticket.number+' a fost trimis către Operator Garanții.',confirmText:'OK'})}
+  modal.querySelector('.ok').onclick=async()=>{const reason=text(modal.querySelector('#ticketReason').value),details=text(modal.querySelector('#ticketDetails').value);if(reason.length<3){modal.querySelector('#ticketError').textContent='Completează motivul solicitării.';return}const stamp=Date.now(),user=account()||{},ticket={id:'WT'+stamp,number:'TIC '+String(stamp).slice(-6),orderId:text(order.id),orderCode:text(order.code),center:centerOf(order),clientName:text(order.client?.name),clientCode:text(order.client?.code),patient:text(order.patient),product:[order.product,order.design,order.index,order.treatment].filter(Boolean).join(' · '),requestType:modal.querySelector('#ticketType').value,reason,details,status:'new',messages:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),createdByUid:text(user.uid),createdByName:text(user.name||user.username),createdByRole:text(user.role),createdByCenter:text(user.center)};modal.querySelector('.ok').disabled=true;await persist(ticket);modal.remove();if(typeof showAppConfirm==='function')showAppConfirm({title:'Solicitare trimisă',text:'Tichetul '+ticket.number+' a fost trimis către Operator Garanții.',confirmText:'OK'})}
  };
  window.SPHERA_viewWarrantyTicket=function(id){const item=tickets.find(ticket=>text(ticket.id)===text(id));if(!item||!visible(item))return;const meta=statusMeta(item.status),messages=(item.messages||[]).map(message=>'<div class="ticket-message"><b>'+escHtml(message.author)+'</b><small>'+escHtml(nowLabel(message.at))+'</small><p>'+escHtml(message.text)+'</p></div>').join('')||'<div class="muted">Nu există mesaje.</div>';const modal=showModal('<div class="top"><div><div class="muted">'+escHtml(item.number)+'</div><div class="step-title">'+escHtml(typeLabel(item.requestType))+'</div></div><span class="ticket-status '+meta[1]+'">'+meta[0]+'</span></div><div class="ticket-data"><div><span>Cod comandă</span><b>'+escHtml(item.orderCode)+'</b></div><div><span>Centru</span><b>'+escHtml(item.center)+'</b></div><div><span>Client</span><b>'+escHtml(item.clientName)+'</b></div><div><span>Pacient</span><b>'+escHtml(item.patient||'Nespecificat')+'</b></div><div class="ticket-description"><span>Motiv</span><b>'+escHtml(item.reason)+'</b></div><div class="ticket-description"><span>Detalii</span><b>'+escHtml(item.details||'Fără detalii suplimentare')+'</b></div></div><h3 class="ticket-section-title">Istoric comunicare</h3><div class="ticket-history">'+messages+'</div><div class="alert-actions"><button class="btn cancel">Închide</button>'+(isWarrantyOperator()&&['new','review','info','approved'].includes(item.status)?'<button class="btn ok">Procesează</button>':'')+'</div>');modal.querySelector('.cancel').onclick=()=>modal.remove();const ok=modal.querySelector('.ok');if(ok)ok.onclick=()=>{modal.remove();window.SPHERA_processWarrantyTicket(id)}};
  window.SPHERA_replyWarrantyTicket=function(id){const item=tickets.find(ticket=>text(ticket.id)===text(id));if(!item||!visible(item))return;const modal=showModal('<div class="muted">'+escHtml(item.number)+'</div><div class="step-title">Răspunde Operatorului Garanții</div><div class="field"><label>Răspuns</label><textarea id="ticketReply" placeholder="Completează informațiile solicitate"></textarea></div><div class="err" id="ticketError"></div><div class="alert-actions"><button class="btn cancel">Anulează</button><button class="btn ok">Trimite răspunsul</button></div>');modal.querySelector('.cancel').onclick=()=>modal.remove();modal.querySelector('.ok').onclick=async()=>{const value=text(modal.querySelector('#ticketReply').value);if(value.length<2){modal.querySelector('#ticketError').textContent='Completează răspunsul.';return}item.messages=[...(item.messages||[]),{author:text(account()?.name||account()?.username),role:text(account()?.role),text:value,at:new Date().toISOString()}];item.status='new';await persist(item);modal.remove()}};
@@ -1631,7 +1724,7 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(decorate,1200),{once
  function installDetailsButton(){
   window.SPHERA_addWarrantyDetailsButton=function(id){const order=orderById(id),modal=[...document.querySelectorAll('.order-details-modal')].pop();if(!order||!modal)return;modal.querySelector('.warranty-create-btn,.ticket-request-btn')?.remove();if(key(order.workflowStatus||order.status)!=='livrata'||!canRequest())return;const row=modal.querySelector('.order-number-row');if(!row)return;const existing=ticketForOrder(id),button=document.createElement('button');button.type='button';button.className='btn ghost ticket-request-btn';if(existing){button.textContent='Vezi tichetul';button.onclick=()=>window.SPHERA_viewWarrantyTicket(existing.id)}else if(isWarrantyOperator()){button.textContent='Înregistrează garanție';button.onclick=()=>window.SPHERA_openWarrantyForm?.(id)}else{button.textContent='Deschide tichet';button.onclick=()=>window.SPHERA_openWarrantyRequest(id)}row.appendChild(button)};
  }
- function startSync(){if(syncStarted||!window.SPHERA_DB)return;syncStarted=true;window.SPHERA_DB.collection(COLLECTION).limit(2000).onSnapshot(snapshot=>{tickets=snapshot.docs.map(doc=>({id:doc.id,...doc.data()})).filter(item=>text(item.id));writeLocal();render()},error=>console.error('SPHERA tickets sync',error))}
+ function startSync(){if(syncStarted||!window.SPHERA_DB)return;syncStarted=true;window.__SPHERA_TICKET_SYNC_ACTIVE=true;window.SPHERA_DB.collection(COLLECTION).limit(2000).onSnapshot(snapshot=>{tickets=snapshot.docs.map(doc=>({id:doc.id,...doc.data()})).filter(item=>text(item.id));writeLocal();render();document.dispatchEvent(new CustomEvent('sphera:tickets-updated'))},error=>console.error('SPHERA tickets sync',error))}
  function boot(){tickets=readLocal();installPermissions();installDetailsButton();ensurePage();render();startSync();const app=document.getElementById('appScreen');if(app)new MutationObserver(()=>{installPermissions();installDetailsButton();ensurePage();render();startSync()}).observe(app,{attributes:true,attributeFilter:['style','class']})}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,900),{once:true});else setTimeout(boot,900)
 })();
@@ -1946,7 +2039,6 @@ window.addEventListener('load',()=>requestAnimationFrame(refreshDeliveryButtons)
 <p class="login-platform">Introdu datele pentru accesarea aplicației.</p>
 <input autocapitalize="none" autocomplete="username" autofocus="" class="login-password login-username" id="user" name="username" placeholder="Utilizator" spellcheck="false"/>
 <input autocomplete="current-password" class="login-password" id="pass" name="password" placeholder="Parolă" type="password"/>
-<div class="remember-row"><input id="rememberMe" name="remember" type="checkbox"/><label for="rememberMe">Ține-mă minte</label></div>
 <button class="login-enter-btn" id="loginBtn" type="submit">Intră în aplicație</button>
 <div class="login-note" id="loginErr"></div>
 </form>
@@ -3194,12 +3286,25 @@ function renderProcessingOrders(){
 }
 
 function render(){
+ if(window.SPHERA_AUTH?.currentUser&&typeof ordersReady!=='undefined'&&!ordersReady){
+   [kTotal,kToday,document.getElementById('kOpen'),document.getElementById('kDelivered'),document.getElementById('kDelayed'),document.getElementById('kTransit')].forEach(element=>{if(element)element.textContent='…'});
+   const box=document.getElementById('orderRows');
+   if(box)box.innerHTML='<tr><td colspan="10" class="muted" style="padding:24px;text-align:center">Se sincronizează comenzile…</td></tr>';
+   return
+ }
  const scoped=visibleOrders();
- kTotal.textContent=scoped.length;
- kToday.textContent=scoped.filter(o=>o.date===new Date().toISOString().slice(0,10)).length;
- const ko=document.getElementById('kOpen'); if(ko) ko.textContent=scoped.filter(o=>o.status!=='Livrată').length;
- const kd=document.getElementById('kDelivered'); if(kd) kd.textContent=scoped.filter(o=>o.status==='Livrată').length;
- const kdelay=document.getElementById('kDelayed'); if(kdelay) kdelay.textContent=scoped.filter(isDelayedOrder).length; const ktransit=document.getElementById('kTransit'); if(ktransit) ktransit.textContent=String(scoped.filter(o=>typeof window.isCenterTransitOrder==='function'&&window.isCenterTransitOrder(o)).length);
+ const today=new Date().toISOString().slice(0,10),totals={today:0,open:0,delivered:0,delayed:0,transit:0};
+ for(const order of scoped){
+   if(order.date===today)totals.today++;
+   if(order.status==='Livrată')totals.delivered++;else totals.open++;
+   if(isDelayedOrder(order))totals.delayed++;
+   if(typeof window.isCenterTransitOrder==='function'&&window.isCenterTransitOrder(order))totals.transit++;
+ }
+ kTotal.textContent=scoped.length;kToday.textContent=totals.today;
+ const ko=document.getElementById('kOpen');if(ko)ko.textContent=totals.open;
+ const kd=document.getElementById('kDelivered');if(kd)kd.textContent=totals.delivered;
+ const kdelay=document.getElementById('kDelayed');if(kdelay)kdelay.textContent=totals.delayed;
+ const ktransit=document.getElementById('kTransit');if(ktransit)ktransit.textContent=String(totals.transit);
  const rawQuery=String(document.getElementById('q')?.value||'').trim();
  const queryVariants=rxQueryVariants(rawQuery);
  const isPlainCodeQuery=/^\d+$/.test(rawQuery);
@@ -3210,10 +3315,11 @@ function render(){
  const queryTokenGroups=rawQuery.split(/\s+/).filter(Boolean).map(t=>[...new Set(rxQueryVariants(t).concat([norm(t)]).filter(Boolean))]);
  let rows=scoped.filter(o=>{
    let ok=true;
-   if(orderViewMode==='today') ok=o.date===new Date().toISOString().slice(0,10);
+   if(orderViewMode==='today') ok=o.date===today;
    if(orderViewMode==='open') ok=o.status!=='Livrată';
    if(orderViewMode==='delivered') ok=o.status==='Livrată';
    if(orderViewMode==='delayed') ok=isDelayedOrder(o); if(orderViewMode==='transit')ok=typeof window.isCenterTransitOrder==='function'&&window.isCenterTransitOrder(o); if(orderViewMode==='warehouseTransit')ok=typeof window.SPHERA_isWarehouseTransitOrder==='function'&&window.SPHERA_isWarehouseTransitOrder(o);
+   if(!ok||!rawQuery)return ok;
    const values=[processingCenterLabel(o),o.code,o.client.name,o.patient,productSummary(o),odText(o),osText(o),addText(o),o?.rx?.odSph,o?.rx?.odCyl,o?.rx?.odAx,o?.rx?.odAdd,o?.rx?.osSph,o?.rx?.osCyl,o?.rx?.osAx,o?.rx?.osAdd];
    const haystack=norm(values.join(' '));
    const rxAliases=values.flatMap(v=>rxQueryVariants(v)).join(' ');
@@ -3268,7 +3374,8 @@ function render(){
    const dashboardEnd=Math.min(totalFilteredRows,dashboardStart+rows.length);
    pager.innerHTML=`<span class="orders-page-range">Afișate ${totalFilteredRows?dashboardStart+1:0}–${dashboardEnd} din ${totalFilteredRows}</span><div class="orders-page-controls"><button type="button" class="orders-page-arrow" ${dashboardPage<=1?'disabled':''} onclick="window.SPHERA_dashboardPage=Math.max(1,Number(window.SPHERA_dashboardPage||1)-1);render()" aria-label="Pagina anterioară">‹</button><b>${dashboardPage} / ${dashboardTotalPages}</b><button type="button" class="orders-page-arrow" ${dashboardPage>=dashboardTotalPages?'disabled':''} onclick="window.SPHERA_dashboardPage=Math.min(${dashboardTotalPages},Number(window.SPHERA_dashboardPage||1)+1);render()" aria-label="Pagina următoare">›</button></div>`
  }
- if(typeof prodList!=='undefined' && prodList){
+ const nomenclatorsVisible=!document.getElementById('nomenclators')?.classList.contains('hide');
+ if(nomenclatorsVisible&&typeof prodList!=='undefined'&&prodList){
  prodList.innerHTML=designKeys().map(p=>[p,PRODUCTS[p]]).map(([p,ds])=>{let id=btoa(unescape(encodeURIComponent(p))).replace(/=/g,'');return `<div class="item"><div class="item-row"><div><b>${p}</b><div class="chips">${(ds||[]).map(d=>`<span class="chip">${d}<button class="mini red" tabindex="-1" onclick="deleteDesign('${p.replace(/'/g,"\'")}','${d.replace(/'/g,"\'")}')">×</button></span>`).join('')||'<span class="muted">Fără produse</span>'}</div></div><button class="icon-btn red" tabindex="-1" title="Șterge design" onclick="deleteProduct('${p.replace(/'/g,"\'")}')">${ICON_TRASH}</button></div><div class="design-editor"><input id="design_${id}" placeholder="Produs nou pentru ${p}"><button class="mini" onclick="addDesign('${p.replace(/'/g,"\'")}')">Adaugă produs</button></div></div>`}).join('');
  idxList.innerHTML=INDICES.map(x=>`<div class="item item-row"><b>${x}</b><button class="icon-btn red" tabindex="-1" title="Șterge" onclick="deleteSimple('INDICES','${x}')">${ICON_TRASH}</button></div>`).join('');
  matList.innerHTML=MATERIALS.map(x=>`<div class="item item-row"><b>${x}</b><button class="icon-btn red" tabindex="-1" title="Șterge" onclick="deleteSimple('MATERIALS','${x}')">${ICON_TRASH}</button></div>`).join('');
@@ -3285,6 +3392,7 @@ function render(){
  if(!document.getElementById('dashboard')?.classList.contains('hide'))renderRecentClients();
  if(processingPageVisible)renderProcessingOrders();
  if(settingsPageVisible)renderDeletedOrders();
+ document.dispatchEvent(new CustomEvent('sphera:dashboard-rendered'));
 }
 
 /* Păstrează randarea de bază înainte ca modulele ulterioare să o suprascrie. */
@@ -3309,8 +3417,18 @@ function renderClients(){
    .sort((a,b)=>(Number(b.createdAt||0)-Number(a.createdAt||0)) || a.__i-b.__i);
  const count=document.getElementById('clientFilterCount');
  if(count)count.textContent=String(filtered.length);
- const rows=filtered.slice(0,10000);
+ const clientPageKey=q+'|'+String(currentUser?.uid||currentUser?.username||currentUser?.center||'');
+ const clientPageSize=50;
+ if(window.SPHERA_clientPageKey!==clientPageKey){window.SPHERA_clientPageKey=clientPageKey;window.SPHERA_clientPage=1}
+ const clientTotalPages=Math.max(1,Math.ceil(filtered.length/clientPageSize));
+ const clientPage=Math.min(clientTotalPages,Math.max(1,Number(window.SPHERA_clientPage||1)));
+ window.SPHERA_clientPage=clientPage;
+ const clientStart=(clientPage-1)*clientPageSize;
+ const rows=filtered.slice(clientStart,clientStart+clientPageSize);
  body.innerHTML=rows.map((c,i)=>`<tr><td><input value="${esc(c.name)}" ${currentUser?`onchange="updateClient('${c.code}','name',this.value)" onblur="updateClient('${c.code}','name',this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}" title="Poți modifica denumirea clientului"`:'readonly'}></td><td><input value="${esc(c.city)}" ${currentUser?`onchange="updateClient('${c.code}','city',this.value)" onblur="updateClient('${c.code}','city',this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}" title="Poți modifica localitatea"`:'readonly'}></td><td><input value="${esc(c.code)}" readonly></td><td><div class="client-actions">${isAdmin()?`<button class="icon-btn red table-action" tabindex="-1" onclick="deleteClient('${c.code}')" title="Șterge client">${ICON_TRASH}</button>`:''}</div></td></tr>`).join('') || '<tr><td colspan="4" class="muted">Nu există clienți.</td></tr>';
+ let pager=document.getElementById('clientsPager');
+ if(!pager){pager=document.createElement('div');pager.id='clientsPager';pager.className='orders-pager';body.closest('.table-wrap')?.after(pager)}
+ if(pager){const clientEnd=Math.min(filtered.length,clientStart+rows.length);pager.innerHTML=`<span class="orders-page-range">Afișate ${filtered.length?clientStart+1:0}–${clientEnd} din ${filtered.length}</span><div class="orders-page-controls"><button type="button" class="orders-page-arrow" ${clientPage<=1?'disabled':''} onclick="window.SPHERA_clientPage=Math.max(1,Number(window.SPHERA_clientPage||1)-1);renderClients()" aria-label="Pagina anterioară">‹</button><b>${clientPage} / ${clientTotalPages}</b><button type="button" class="orders-page-arrow" ${clientPage>=clientTotalPages?'disabled':''} onclick="window.SPHERA_clientPage=Math.min(${clientTotalPages},Number(window.SPHERA_clientPage||1)+1);renderClients()" aria-label="Pagina următoare">›</button></div>`}
 }
 function updateClient(code,field,value){
  if(!currentUser)return;
@@ -3867,7 +3985,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  function addDetailsButton(id){const order=orderById(id),modal=[...document.querySelectorAll('.order-details-modal')].pop();if(!order||!modal)return;if(!canRegisterWarranty(order)||warrantyAlreadyRegistered(order)||key(order.workflowStatus||order.status)!=='livrata'){modal.querySelector('.warranty-create-btn')?.remove();return}if(modal.querySelector('.warranty-create-btn'))return;const row=modal.querySelector('.order-number-row');if(!row)return;const button=document.createElement('button');button.type='button';button.className='btn ghost warranty-create-btn';button.textContent='Înregistrează garanție';button.onclick=()=>window.SPHERA_openWarrantyForm(id);row.appendChild(button)}
  window.SPHERA_addWarrantyDetailsButton=addDetailsButton;
  const priorDetails=window.showOrderDetails;if(typeof priorDetails==='function')window.showOrderDetails=function(id){const result=priorDetails.apply(this,arguments);setTimeout(()=>addDetailsButton(id),160);return result};
- function startSync(){if(syncStarted||!window.SPHERA_DB)return;syncStarted=true;window.SPHERA_DB.collection(COLLECTION).orderBy('requestedAt','desc').limit(2000).onSnapshot(snapshot=>{warranties=snapshot.docs.map(doc=>({id:doc.id,...doc.data()})).filter(item=>text(item.id));hydrateWarrantyRecords();writeLocal();render()},error=>console.error('SPHERA warranties sync',error))}
+ function startSync(){if(syncStarted||!window.SPHERA_DB||window.SPHERA_IS_LIGHT_ACCOUNT?.())return;syncStarted=true;window.SPHERA_DB.collection(COLLECTION).orderBy('requestedAt','desc').limit(2000).onSnapshot(snapshot=>{warranties=snapshot.docs.map(doc=>({id:doc.id,...doc.data()})).filter(item=>text(item.id));hydrateWarrantyRecords();writeLocal();render()},error=>console.error('SPHERA warranties sync',error))}
  function boot(){warranties=readLocal();ensureUi();render();startSync();installWarrantyDeleteHook();const app=document.getElementById('appScreen');if(app)new MutationObserver(()=>{ensureUi();startSync();installWarrantyDeleteHook()}).observe(app,{attributes:true,attributeFilter:['style','class']})}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,500),{once:true});else setTimeout(boot,500)
 })();
@@ -5980,9 +6098,11 @@ cursor:pointer;
       if(Array.isArray(data.materials)){MATERIALS=data.materials;window.MATERIALS=MATERIALS;localStorage.setItem('sphera_v19_materials',JSON.stringify(data.materials));}
       if(data.products&&typeof data.products==='object'){PRODUCTS=data.products;localStorage.setItem('sphera_v19_products',JSON.stringify(data.products));}
       if(Array.isArray(data.treatments)){TREATMENTS=data.treatments;window.TREATMENTS=TREATMENTS;localStorage.setItem('sphera_v19_treatments',JSON.stringify(data.treatments));}
-      if(typeof render==='function')render();
-      if(typeof renderProcessingOrders==='function')renderProcessingOrders();
-      if(typeof renderClients==='function')renderClients();
+      const visible=id=>{const page=document.getElementById(id);return !!page&&!page.hidden&&!page.classList.contains('hide')};
+      if(visible('dashboard')&&typeof render==='function')render();
+      else if(visible('processingPage')&&typeof window.SPHERA_renderStatusOrders==='function')window.SPHERA_renderStatusOrders();
+      else if(visible('clientsPage')&&typeof renderClients==='function')renderClients();
+      else if(visible('nomenclators')&&typeof window.SPHERA_renderNomenclators==='function')window.SPHERA_renderNomenclators();
     }finally{setTimeout(()=>{applyingRemote=false},0)}
   }
   function scheduleCloudSave(){
@@ -6132,6 +6252,7 @@ cursor:pointer;
       }else if(dashboardPage&&!dashboardPage.classList.contains('hide')){
         if(typeof render==='function')render();
       }
+      document.dispatchEvent(new CustomEvent('sphera:orders-updated'));
     }finally{
       setTimeout(()=>{applyingOrdersRemote=false},0);
     }
@@ -6364,9 +6485,9 @@ cursor:pointer;
         lastLocalOrderIds=new Set(orders.map(order=>String(order.id)));
         lastLocalOrdersById=new Map(orders.map(order=>[String(order.id),cleanOrderForCloud(order)]));
         originalSetItem('rx_orders',JSON.stringify(orders));
-        if(typeof render==='function')render();
-        if(typeof renderProcessingOrders==='function')renderProcessingOrders();
-        if(typeof window.SPHERA_renderStatusOrders==='function')window.SPHERA_renderStatusOrders();
+        const processingVisible=!document.getElementById('processingPage')?.classList.contains('hide');
+        if(processingVisible&&typeof window.SPHERA_renderStatusOrders==='function')window.SPHERA_renderStatusOrders();
+        else if(typeof window.render==='function')window.render();
         setTimeout(()=>{applyingOrdersRemote=false},0);
       }
       if(typeof renderDeletedOrders==='function')renderDeletedOrders();
@@ -6392,9 +6513,9 @@ cursor:pointer;
     originalSetItem('rx_orders',JSON.stringify(orders));
     applyingOrdersRemote=false;
 
-    if(typeof render==='function')render();
-    if(typeof renderProcessingOrders==='function')renderProcessingOrders();
-    if(typeof window.SPHERA_renderStatusOrders==='function')window.SPHERA_renderStatusOrders();
+    const processingVisible=!document.getElementById('processingPage')?.classList.contains('hide');
+    if(processingVisible&&typeof window.SPHERA_renderStatusOrders==='function')window.SPHERA_renderStatusOrders();
+    else if(typeof window.render==='function')window.render();
 
     if(!auth.currentUser){
       setCloudStatus('Cloud: autentificare necesară pentru ștergere','error');
@@ -6453,9 +6574,9 @@ cursor:pointer;
       applyingOrdersRemote=true;
       originalSetItem('rx_orders',JSON.stringify(orders));
       applyingOrdersRemote=false;
-      if(typeof render==='function')render();
-      if(typeof renderProcessingOrders==='function')renderProcessingOrders();
-      if(typeof window.SPHERA_renderStatusOrders==='function')window.SPHERA_renderStatusOrders();
+      const processingVisible=!document.getElementById('processingPage')?.classList.contains('hide');
+      if(processingVisible&&typeof window.SPHERA_renderStatusOrders==='function')window.SPHERA_renderStatusOrders();
+      else if(typeof window.render==='function')window.render();
       if(typeof renderDeletedOrders==='function')renderDeletedOrders();
       setCloudStatus('Cloud: comanda nu a putut fi ștearsă','error');
       return false;
@@ -6496,9 +6617,9 @@ cursor:pointer;
       lastLocalOrdersById.set(id,cleanOrderForCloud(restoredOrder));
       originalSetItem('rx_orders',JSON.stringify(orders));
       originalSetItem('sphera_deleted_orders_history',JSON.stringify(deletedOrders));
-      if(typeof render==='function')render();
-      if(typeof renderProcessingOrders==='function')renderProcessingOrders();
-      if(typeof window.SPHERA_renderStatusOrders==='function')window.SPHERA_renderStatusOrders();
+      const processingVisible=!document.getElementById('processingPage')?.classList.contains('hide');
+      if(processingVisible&&typeof window.SPHERA_renderStatusOrders==='function')window.SPHERA_renderStatusOrders();
+      else if(typeof window.render==='function')window.render();
       if(typeof renderDeletedOrders==='function')renderDeletedOrders();
       setCloudStatus('Cloud: comanda a fost restabilită','ok');
       return true;
@@ -6604,36 +6725,49 @@ cursor:pointer;
       };
       addTerritorySources('city',clientTerritoryQueryValues(scopedCenter,'city'));
       addTerritorySources('county',clientTerritoryQueryValues(scopedCenter,'county'));
-      const buckets=new Map(),readySources=new Set(),unsubscribers=[];
-      const backfillResponsibilities=()=>{
-        let changed=false;
-        (orders||[]).forEach(order=>{
-          if(routingKey(order?.deliveryDestination)!=='client')return;
-          const responsible=orderResponsibleCenter(order);
-          if(!responsible||routingKey(responsible)==='extern'||routingKey(order.responsibleCenter)===routingKey(responsible))return;
-          order.responsibleCenter=responsible;changed=true
-        });
-        return changed
-      };
-      const publishMerged=cloudChanges=>{
+      const buckets=new Map(),readySources=new Set(),serverReadySources=new Set(),unsubscribers=[];
+      let mergeTimer=0,fallbackTimer=0,pendingCloudChanges=[],lastMergedSignature='';
+      const publishMerged=(cloudChanges,force=false)=>{
         if(readySources.size<sources.length)return;
+        if(serverReadySources.size<sources.length&&!force)return;
         const merged=new Map();
         buckets.forEach(bucket=>bucket.forEach((order,id)=>{if(id)merged.set(id,order)}));
-        applyOrdersFromCloud([...merged.values()],cloudChanges||[]);
-        const responsibilitiesChanged=backfillResponsibilities();
+        const mergedOrders=[...merged.values()].sort((a,b)=>String(a?.id||'').localeCompare(String(b?.id||'')));
+        const mergedSignature=JSON.stringify(mergedOrders.map(order=>[
+          order?.id,order?.code,order?.status,order?.workflowStatus,
+          order?.updatedAt,order?.lastModifiedTimestamp,order?.workflowUpdatedAt,
+          order?.center,order?.responsibleCenter,order?.deliveryCenter,
+          order?.client?.name,order?.product,order?.design
+        ]));
+        if(mergedSignature===lastMergedSignature){
+          ordersReady=true;
+          markOrdersSyncHealthy();
+          setCloudStatus('Cloud: conectat','ok');
+          return
+        }
+        lastMergedSignature=mergedSignature;
         ordersReady=true;
+        applyOrdersFromCloud(mergedOrders,cloudChanges||[]);
         markOrdersSyncHealthy();
         setCloudStatus('Cloud: conectat','ok');
         if(ordersPendingSave)scheduleOrdersSave();
-        if(responsibilitiesChanged)setTimeout(scheduleOrdersSave,0)
       };
       const publish=(snap,sourceName)=>{
         buckets.set(sourceName,new Map(readSnapshot(snap).map(order=>[String(order.id||''),order])));
         readySources.add(sourceName);
-        publishMerged(snapshotChanges(snap))
+        if(snap?.metadata?.fromCache===false)serverReadySources.add(sourceName);
+        pendingCloudChanges.push(...snapshotChanges(snap));
+        clearTimeout(mergeTimer);
+        mergeTimer=setTimeout(()=>{
+          mergeTimer=0;
+          const unique=new Map();
+          pendingCloudChanges.forEach(change=>unique.set(String(change.id||'')+'|'+String(change.type||''),change));
+          pendingCloudChanges=[];
+          publishMerged([...unique.values()])
+        },serverReadySources.size===sources.length?120:500)
       };
       sources.forEach(([name,source])=>{
-        unsubscribers.push(source.onSnapshot(snap=>publish(snap,name),error=>{
+        unsubscribers.push(source.onSnapshot({includeMetadataChanges:true},snap=>publish(snap,name),error=>{
           console.error('SPHERA scoped orders listener error',name,error);
           /* Nu transforma o interogare eșuată într-o listă goală. Păstrăm ultima
              versiune completă și lăsăm Firestore să refacă listenerul. */
@@ -6641,7 +6775,10 @@ cursor:pointer;
           scheduleOrdersSyncRetry(error)
         }))
       });
-      unsubscribeOrders=()=>unsubscribers.forEach(stop=>{try{stop()}catch(_){}});
+      fallbackTimer=setTimeout(()=>{
+        if(navigator.onLine===false&&!ordersReady&&readySources.size===sources.length)publishMerged([],true)
+      },5000);
+      unsubscribeOrders=()=>{clearTimeout(mergeTimer);clearTimeout(fallbackTimer);mergeTimer=0;fallbackTimer=0;pendingCloudChanges=[];lastMergedSignature='';unsubscribers.forEach(stop=>{try{stop()}catch(_){}})};
       return
     }
 
@@ -6669,8 +6806,8 @@ cursor:pointer;
         console.warn('SPHERA incomplete orders snapshot ignored',{cloud:snap.size,preserved:list.length})
       }
       const cloudChanges=snapshotChanges(snap);
-      applyOrdersFromCloud(list,cloudChanges);
       ordersReady=true;
+      applyOrdersFromCloud(list,cloudChanges);
       markOrdersSyncHealthy();
       setCloudStatus('Cloud: conectat','ok');
       if(ordersPendingSave)scheduleOrdersSave();
@@ -6880,7 +7017,7 @@ cursor:pointer;
       if(!currentUser.active){await auth.signOut();throw new Error('Contul este dezactivat.')}
       scheduleExportUsersAuthSync();
       savePasswordForAdminPanel(profile,credential.user,password);
-      applyPermissions();startSharedSync();startDeletedOrdersSync();startOrdersSync();startUsersSync();
+      applyPermissions();document.dispatchEvent(new CustomEvent('sphera:user-ready'));startSharedSync();startDeletedOrdersSync();startOrdersSync();startUsersSync();
         const waitStarted=Date.now();while(!ordersReady&&Date.now()-waitStarted<6000){await new Promise(resolve=>setTimeout(resolve,40))}
         showApp();showPage('dashboard');if(typeof render==='function')render();setCloudStatus('Cloud: conectare...','wait');
     }catch(e){if(err)err.textContent=e.message||'Profilul utilizatorului nu poate fi încărcat.';try{await loginTimeout(auth.signOut(),3000)}catch(_){}showLogin()}
@@ -7003,6 +7140,7 @@ cursor:pointer;
 
       /* v24: pornește sincronizarea înainte ca Dashboard-ul să devină vizibil. */
       applyPermissions();
+      document.dispatchEvent(new CustomEvent('sphera:user-ready'));
       try{
         startSharedSync();
         startDeletedOrdersSync();
@@ -7138,7 +7276,7 @@ cursor:pointer;
         currentUser=profileToCurrent(profile,user,username);
         if(!currentUser.active){await auth.signOut();return}
         scheduleExportUsersAuthSync();
-        showApp();applyPermissions();render();showPage('dashboard');startSharedSync();startDeletedOrdersSync();startOrdersSync();startUsersSync();
+        showApp();applyPermissions();document.dispatchEvent(new CustomEvent('sphera:user-ready'));render();showPage('dashboard');startSharedSync();startDeletedOrdersSync();startOrdersSync();startUsersSync();
       }catch(e){console.error(e);setCloudStatus('Cloud: eroare profil','error');showLogin()}
     });
   });
@@ -10620,7 +10758,7 @@ html>.sphera-edit-popup.modal.open>.wizard{
   };
   function ensureBugSettings(){const settings=document.getElementById('settings');if(!settings||document.getElementById('bugReportsCard'))return;const card=document.createElement('div');card.className='card';card.id='bugReportsCard';card.style.marginTop='16px';card.innerHTML='<div class="top"><div><h2 style="margin:0">Bug-uri raportate</h2><div class="muted">Rapoarte trimise de utilizatorii aplicației.</div></div><span class="pill count-dot" id="bugReportsCount">0</span></div><div class="bug-list" id="bugReportsList"></div>';settings.appendChild(card)}
   window.renderBugReports=function(){ensureBugSettings();const box=document.getElementById('bugReportsList');if(!box)return;const list=bugStore();document.getElementById('bugReportsCount').textContent=String(list.length);box.innerHTML=list.map(x=>'<div class="bug-report"><div class="bug-report-meta">'+esc(new Date(x.createdAt).toLocaleString('ro-RO'))+' · '+esc(x.userName)+' · '+esc(x.center||x.role)+'</div><div class="bug-report-text">'+esc(x.description)+'</div></div>').join('')||'<div class="muted">Nu există bug-uri raportate.</div>'}
-  try{if(typeof db!=='undefined')db.collection('bugReports').orderBy('createdAt','desc').limit(500).onSnapshot(s=>{const list=s.docs.map(d=>d.data());localStorage.setItem(BUGS_KEY,JSON.stringify(list));if(isAdminNow())renderBugReports()})}catch(e){console.error('Bug reports listener',e)}
+  /* Sincronizarea rapoartelor este administrată de modulul unic de mai jos. */
 
   function enforceDeletedVisibility(){const card=document.getElementById('deletedOrdersCard');if(card)card.style.setProperty('display',isAdminNow()?'':'none','important')}
 
@@ -11150,7 +11288,7 @@ html>.sphera-edit-popup.modal.open>.wizard{
     const id=eventId(order),event=readLedger()[id];if(order?.deliveredDate)return order.deliveredDate+(order.deliveredTime?', '+order.deliveredTime:'');if(event?.deliveredDate){order.deliveredAt=event.deliveredAt;order.deliveredDate=event.deliveredDate;order.deliveredTime=event.deliveredTime;order.deliveredBy=event.deliveredBy;return event.deliveredDate+(event.deliveredTime?', '+event.deliveredTime:'')}
     const now=new Date();order.deliveredAt=now.getTime();order.deliveredDate=now.toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit',year:'numeric'});order.deliveredTime=now.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});order.deliveredBy=currentUser?.name||currentUser?.username||'Utilizator';persistDeliveryEvent(order);save();return order.deliveredDate+', '+order.deliveredTime
   };
-  try{if(typeof db!=='undefined')db.collection('deliveryEvents').onSnapshot(snapshot=>{const ledger=readLedger();snapshot.docs.forEach(doc=>{const event=doc.data()||{};if(event.orderId)ledger[String(event.orderId)]=event});localStorage.setItem(DELIVERY_KEY,JSON.stringify(ledger));(orders||[]).forEach(order=>{const event=ledger[eventId(order)];if(event&&norm(order.workflowStatus||order.status||'')==='livrata'){order.deliveredAt=event.deliveredAt;order.deliveredDate=event.deliveredDate;order.deliveredTime=event.deliveredTime;order.deliveredBy=event.deliveredBy}});if(typeof render==='function')render()})}catch(e){console.error(e)}
+  try{if(typeof db!=='undefined')db.collection('deliveryEvents').onSnapshot(snapshot=>{const ledger=readLedger();snapshot.docs.forEach(doc=>{const event=doc.data()||{};if(event.orderId)ledger[String(event.orderId)]=event});localStorage.setItem(DELIVERY_KEY,JSON.stringify(ledger));(orders||[]).forEach(order=>{const event=ledger[eventId(order)];if(event&&norm(order.workflowStatus||order.status||'')==='livrata'){order.deliveredAt=event.deliveredAt;order.deliveredDate=event.deliveredDate;order.deliveredTime=event.deliveredTime;order.deliveredBy=event.deliveredBy}});const dashboard=document.getElementById('dashboard'),status=document.getElementById('processingPage');if(dashboard&&!dashboard.classList.contains('hide')&&typeof render==='function')render();else if(status&&!status.classList.contains('hide')&&typeof window.SPHERA_renderStatusOrders==='function')window.SPHERA_renderStatusOrders()})}catch(e){console.error(e)}
 })();
 </script>
 <style id="sphera-v103-style">
@@ -11415,7 +11553,7 @@ html>.sphera-edit-popup.modal.open>.wizard{
     if(center)currentUser.center=center;
   }
   function startBugSync(){
-    if(!window.SPHERA_DB||!window.SPHERA_AUTH?.currentUser)return;
+    if(!['admin','administrator'].includes(clean(currentUser?.role))||!window.SPHERA_DB||!window.SPHERA_AUTH?.currentUser)return;
     if(unsubscribeBugs)unsubscribeBugs();
     unsubscribeBugs=window.SPHERA_DB.collection('bugReports').orderBy('createdAt','desc').limit(500).onSnapshot(snapshot=>{
       const list=snapshot.docs.map(doc=>({id:doc.id,...(doc.data()||{})}));
@@ -18995,7 +19133,9 @@ function dashboard(){
 }
 function renderAll(){if(busy)return;busy=true;requestAnimationFrame(()=>{try{enhanceWarranty()}finally{busy=false}})}
 document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{renderAll();const p=document.getElementById('warrantiesPage');if(p)new MutationObserver(()=>{if(!document.querySelector('#warrantyTicketsHost .ticket-panel-v2'))renderAll()}).observe(p,{childList:true,subtree:true})},1200),{once:true});
-const oldRender=window.render;if(typeof oldRender==='function')window.render=function(){const r=oldRender.apply(this,arguments);setTimeout(renderAll,30);return r};setInterval(()=>{if(!document.hidden){const host=document.getElementById('warrantyTicketsHost');if(host&&!host.querySelector('.ticket-panel-v2'))renderAll()}},30000)
+document.addEventListener('sphera:tickets-updated',()=>{const host=document.getElementById('warrantyTicketsHost');if(host)host.innerHTML='';renderAll()});
+document.addEventListener('sphera:user-ready',renderAll);
+document.addEventListener('click',event=>{if(event.target.closest?.('#menuWarranties'))requestAnimationFrame(renderAll)},true)
 })();
 </script>
 <style id="sphera-ticket-collapse-standard-v3-style">
@@ -19137,7 +19277,7 @@ function latestTicket(orderId){return read().filter(ticket=>text(ticket.orderId)
 function fillWarranty(orderId){const modal=[...document.querySelectorAll('.warranty-modal')].pop(),ticket=latestTicket(orderId);if(!modal||!ticket)return;const requestType=modal.querySelector('#warrantyRequestType');if(requestType&&[...requestType.options].some(option=>option.value===ticket.requestType)){requestType.value=ticket.requestType;requestType.dispatchEvent(new Event('change',{bubbles:true}))}const reason=modal.querySelector('#warrantyReason');if(reason&&text(ticket.reason)){reason.value=sentence(ticket.reason);reason.dispatchEvent(new Event('input',{bubbles:true}))}const resolution=modal.querySelector('#warrantyResolution');if(resolution&&text(ticket.resolution||ticket.details)){resolution.value=sentence(ticket.resolution||ticket.details);resolution.dataset.autoValue='';resolution.dispatchEvent(new Event('input',{bubbles:true}))}const discount=modal.querySelector('#warrantyDiscount');if(discount&&ticket.requestType!=='nonadaptation'){const value=ticket.billingMethod==='discount'&&Number.isFinite(Number(ticket.discountPercent))?Number(ticket.discountPercent):ticket.billingMethod==='free'?100:null;if(value!==null){discount.value=String(value);discount.dispatchEvent(new Event('input',{bubbles:true}))}}}
 const originalOpen=window.SPHERA_openWarrantyForm;if(typeof originalOpen==='function'&&!originalOpen.__ticketPrefillV11){const wrapped=function(orderId){const result=originalOpen.apply(this,arguments);requestAnimationFrame(()=>fillWarranty(orderId));setTimeout(()=>fillWarranty(orderId),80);return result};wrapped.__ticketPrefillV11=true;window.SPHERA_openWarrantyForm=wrapped}
 function refreshSurfaces(){const panel=document.querySelector('#warrantyTicketsHost .ticket-panel-v2');if(panel)panel.remove();try{window.render?.()}catch(_){}window.dispatchEvent(new CustomEvent('sphera:tickets-updated'))}
-function startLive(){if(live||!window.SPHERA_DB)return;live=true;try{unsubscribe=window.SPHERA_DB.collection(COLLECTION).limit(2000).onSnapshot(snapshot=>{write(snapshot.docs.map(doc=>({id:doc.id,...doc.data()})).filter(ticket=>text(ticket.id)));refreshSurfaces()},error=>{console.error('SPHERA ticket live sync',error);live=false;try{unsubscribe?.()}catch(_){}unsubscribe=null})}catch(error){console.error('SPHERA ticket live start',error);live=false}}
+function startLive(){if(live||!window.SPHERA_DB||window.__SPHERA_TICKET_SYNC_ACTIVE)return;live=true;try{unsubscribe=window.SPHERA_DB.collection(COLLECTION).limit(2000).onSnapshot(snapshot=>{write(snapshot.docs.map(doc=>({id:doc.id,...doc.data()})).filter(ticket=>text(ticket.id)));refreshSurfaces()},error=>{console.error('SPHERA ticket live sync',error);live=false;try{unsubscribe?.()}catch(_){}unsubscribe=null})}catch(error){console.error('SPHERA ticket live start',error);live=false}}
 document.addEventListener('DOMContentLoaded',()=>setTimeout(startLive,700),{once:true});setInterval(()=>{if(!document.hidden)startLive()},30000);
 })();
 </script>
@@ -19185,13 +19325,14 @@ function user(){return window.currentUser||(typeof currentUser!=='undefined'?cur
 function identities(){const u=user();return[u.role,u.permissionTemplate,u.permission_template,u.accountType,u.type].map(clean)}
 function isMaster(){return identities().some(value=>['iasi','master','operator master','operator-master'].includes(value))}
 function isManager(){return identities().some(value=>['admin','administrator','warranty','operator garantii','operator garantii custom','operator-garantii'].includes(value))}
-function dashboardTicketAccess(){return isManager()||identities().some(value=>['operator','custom','personalizat','iasi','master','operator master','operator-master'].includes(value))}
+function dashboardTicketAccess(){const u=user(),roles=identities();return !!(u?.uid||u?.id||u?.username||u?.email)&&!roles.some(value=>['partner','viewer','operator export'].includes(value))}
 function readTickets(){try{const value=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(value)?value:[]}catch(_){return[]}}
 function orderSource(){try{return Array.isArray(window.orders)?window.orders:(typeof orders!=='undefined'&&Array.isArray(orders)?orders:[])}catch(_){return[]}}
 function visible(ticket){if(isManager())return true;const u=user(),userIds=[u.uid,u.id,u.userId,u.email].map(text).filter(Boolean),userNames=[u.name,u.username,u.displayName,u.fullName].map(clean).filter(Boolean),userCenters=[u.center,u.processingCenter,u.assignedCenter,u.responsibleCenter,u.city].map(clean).filter(Boolean),ticketIds=[ticket.createdByUid,ticket.createdById,ticket.createdByEmail].map(text).filter(Boolean),ticketNames=[ticket.createdByName,ticket.createdBy,ticket.operatorName].map(value=>clean(value?.name||value)).filter(Boolean),ticketCenters=[ticket.center,ticket.processingCenter,ticket.responsibleCenter].map(clean).filter(Boolean);if(ticketIds.some(value=>userIds.includes(value))||ticketNames.some(value=>userNames.includes(value))||ticketCenters.some(value=>userCenters.includes(value)))return true;const linked=orderSource().find(order=>text(order.id)===text(ticket.orderId)||text(order.code)===text(ticket.orderCode));if(!linked)return false;const orderIds=[linked.createdByUid,linked.operatorUid,linked.userId,linked.createdByEmail].map(text).filter(Boolean),orderNames=[linked.createdByName,linked.operatorName,linked.operator,linked.createdBy].map(value=>clean(value?.name||value)).filter(Boolean),orderCenters=[linked.processingCenter,linked.responsibleCenter,linked.center,linked.deliveryCenter,linked.client?.city].map(clean).filter(Boolean);return orderIds.some(value=>userIds.includes(value))||orderNames.some(value=>userNames.includes(value))||orderCenters.some(value=>userCenters.includes(value))}
 function openTickets(){return readTickets().filter(visible).filter(ticket=>!['cancelled','created','approved'].includes(ticket.status))}
 function lockWarrantyMenu(){const access=isManager();document.body.classList.toggle('sphera-no-warranty-header',!access);document.body.classList.toggle('sphera-master-no-warranty',isMaster());if(access)return;const menu=document.getElementById('menuWarranties');if(menu){menu.hidden=true;menu.classList.add('hide');menu.style.setProperty('display','none','important')}const page=document.getElementById('warrantiesPage');if(page&&!page.classList.contains('hide')){page.classList.add('hide');document.getElementById('dashboard')?.classList.remove('hide');document.getElementById('menuDashboard')?.classList.add('active')}}
-function ensureTicketCard(){const dashboard=document.getElementById('dashboard'),ordersCard=document.getElementById('dashboardOrdersCard'),list=openTickets();if(!dashboard||!ordersCard)return;let card=document.getElementById('dashboardTicketsCard');if(!dashboardTicketAccess()){card?.remove();return}if(!card){card=document.createElement('div');card.id='dashboardTicketsCard';card.className='card dashboard-ticket-card'}if(ordersCard.nextElementSibling!==card)ordersCard.insertAdjacentElement('afterend',card)}
+function dashboardOrdersAnchor(dashboard){return document.getElementById('dashboardOrdersCard')||document.getElementById('ordersListBox')?.closest('.card')||[...dashboard.querySelectorAll('.card')].find(card=>/Comenzi RX/i.test(card.querySelector('h2')?.textContent||''))}
+function ensureTicketCard(){const dashboard=document.getElementById('dashboard'),ordersCard=dashboard&&dashboardOrdersAnchor(dashboard),list=openTickets();if(!dashboard||!ordersCard)return;let card=document.getElementById('dashboardTicketsCard');if(!dashboardTicketAccess()){card?.remove();return}if(!card){card=document.createElement('div');card.id='dashboardTicketsCard';card.className='card dashboard-ticket-card'}if(ordersCard.nextElementSibling!==card)ordersCard.insertAdjacentElement('afterend',card)}
 function placeNotice(){const dashboard=document.getElementById('dashboard'),stats=dashboard?.querySelector(':scope>.grid.dashboard-stats'),notice=document.getElementById('dashboardOpenTicketNotice');if(!stats||!notice)return;if(stats.previousElementSibling!==notice)stats.parentNode.insertBefore(notice,stats)}
 function enforce(){lockWarrantyMenu();ensureTicketCard();placeNotice()}
 document.addEventListener('DOMContentLoaded',()=>setTimeout(enforce,500),{once:true});
@@ -19231,10 +19372,15 @@ function ticketCard(ticket){const process=manager()&&['new','review'].includes(t
 function renderDashboard(){const card=document.getElementById('dashboardTicketsCard');if(!card)return;const source=ticketList(),legacy=[...source].sort((a,b)=>time(b)-time(a)),signature=legacy.map(ticket=>[ticket.id,ticket.updatedAt,ticket.status,ticket.reason,ticket.details].join(':')).join('|'),renderKey=signature+'|'+dashboardQuery;if(card.dataset.v14Signature===renderKey&&card.querySelector('.dashboard-ticket-row.v14,.ticket-empty'))return;const list=[...source].sort((a,b)=>(a.status==='new'?0:1)-(b.status==='new'?0:1)||time(b)-time(a)),counts={new:0,review:0,info:0,done:0};list.forEach(ticket=>ticket.status==='new'?counts.new++:ticket.status==='review'?counts.review++:ticket.status==='info'?counts.info++:counts.done++);const normalized=clean(dashboardQuery),filtered=list.filter(ticket=>!normalized||clean([ticket.number,ticket.orderCode,ticket.center,ticket.clientName,ticket.patient,ticket.product,ticket.reason,ticket.details,ticket.status].join(' ')).includes(normalized)),hidden=card.querySelector('.dashboard-ticket-body')?.classList.contains('hide');card.dataset.v10Signature=signature;card.dataset.v14Signature=renderKey;card.dataset.v4Signature=legacy.map(ticket=>[ticket.id,ticket.updatedAt,ticket.status].join('|')).join('|');card.innerHTML='<div class="ticket-panel-head"><div><h2>Tichete deschise</h2><div class="muted">Solicitări de garanție și neacomodare</div></div><button class="ticket-collapse" type="button" title="'+(hidden?'Extinde':'Minimizează')+'"></button></div><div class="dashboard-ticket-body'+(hidden?' hide':'')+'"><div class="ticket-summary compact"><div class="ticket-kpi"><span>Noi</span><b>'+counts.new+'</b></div><div class="ticket-kpi"><span>În verificare</span><b>'+counts.review+'</b></div><div class="ticket-kpi"><span>Necesită informații</span><b>'+counts.info+'</b></div><div class="ticket-kpi"><span>Finalizate</span><b>'+counts.done+'</b></div></div><input class="dashboard-ticket-search-v14" type="search" placeholder="Caută după număr tichet, cod comandă, centru, client sau pacient" value="'+esc(dashboardQuery)+'"><div class="dashboard-ticket-list v4">'+(filtered.map(ticketCard).join('')||'<div class="ticket-empty">Nu există tichete pentru această căutare.</div>')+'</div></div>';const input=card.querySelector('.dashboard-ticket-search-v14');input?.addEventListener('input',()=>{dashboardQuery=input.value;card.dataset.v14Signature='';renderDashboard()});card.querySelector('.ticket-collapse')?.addEventListener('click',event=>{const body=card.querySelector('.dashboard-ticket-body');body.classList.toggle('hide');event.currentTarget.title=body.classList.contains('hide')?'Extinde':'Minimizează'})}
 function openWarranties(){const menu=document.getElementById('menuWarranties');if(!menu||menu.hidden)return;try{if(typeof window.showPage==='function')window.showPage('warrantiesPage',menu);else menu.click()}catch(_){menu.click()}}
 function bindNotice(){const notice=document.getElementById('dashboardOpenTicketNotice');if(notice)notice.onclick=openWarranties}
+function dashboardOrdersAnchor(dashboard){return document.getElementById('dashboardOrdersCard')||document.getElementById('ordersListBox')?.closest('.card')||[...dashboard.querySelectorAll('.card')].find(card=>/Comenzi RX/i.test(card.querySelector('h2')?.textContent||''))}
+function ensureDashboardCard(){const u=user(),roles=identities(),allowed=!!(u?.uid||u?.id||u?.username||u?.email)&&!roles.some(value=>['partner','viewer','operator export'].includes(value));const dashboard=document.getElementById('dashboard'),ordersCard=dashboard&&dashboardOrdersAnchor(dashboard);let card=document.getElementById('dashboardTicketsCard');if(!allowed){card?.remove();return null}if(!dashboard||!ordersCard)return card;if(!card){card=document.createElement('div');card.id='dashboardTicketsCard';card.className='card dashboard-ticket-card'}if(ordersCard.nextElementSibling!==card)ordersCard.insertAdjacentElement('afterend',card);return card}
 const baseTicketProcessor=window.SPHERA_processWarrantyTicket;
 window.SPHERA_processWarrantyTicket=function(id){if(typeof baseTicketProcessor!=='function'||!manager())return;const result=baseTicketProcessor.apply(this,arguments),prepare=()=>{const modal=[...document.querySelectorAll('.ticket-modal.modal.open')].pop(),decision=modal?.querySelector('#decision'),note=modal?.querySelector('#decisionNote');if(!modal||!decision||!note)return;const field=note.closest('.field');if(field)field.style.setProperty('display','none','important');const sync=()=>{note.value=decision.value==='reject'?'Tichet respins.':'Tichet aprobat.'};if(!decision.dataset.noReasonV14){decision.addEventListener('change',sync);decision.dataset.noReasonV14='1'}sync()};requestAnimationFrame(prepare);setTimeout(prepare,50);return result};
-function enforce(){renderDashboard();bindNotice()}
+function enforce(){ensureDashboardCard();renderDashboard();bindNotice()}
 document.addEventListener('DOMContentLoaded',()=>setTimeout(enforce,900),{once:true});
+document.addEventListener('sphera:tickets-updated',()=>requestAnimationFrame(enforce));
+document.addEventListener('sphera:user-ready',()=>requestAnimationFrame(enforce));
+document.addEventListener('sphera:orders-updated',()=>requestAnimationFrame(enforce));
 setInterval(()=>{if(!document.hidden)enforce()},30000);
 })();
 </script>
@@ -19513,5 +19659,112 @@ function stabilize(){if(!manager())return;document.querySelectorAll('#warrantyTi
 let queued=false;function schedule(){if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;stabilize()})}
 function observe(){const host=document.getElementById('warrantyTicketsHost');if(!host||host.dataset.v39DeleteObserver)return;host.dataset.v39DeleteObserver='1';new MutationObserver(schedule).observe(host,{childList:true,subtree:true})}
 document.addEventListener('DOMContentLoaded',()=>{observe();schedule()},{once:true});document.addEventListener('sphera:tickets-updated',schedule);document.addEventListener('sphera:warranties-updated',schedule);document.addEventListener('click',e=>{if(e.target.closest?.('#menuWarranties'))setTimeout(()=>{observe();schedule()},0)},true);setTimeout(()=>{observe();schedule()},0);setTimeout(()=>{observe();schedule()},2200);
+})();
+</script>
+<style id="sphera-v41-light-render-style">
+body.sphera-v41-light-account .page.hide{content-visibility:hidden!important}
+body.sphera-v41-light-account #processingOrdersList,body.sphera-v41-light-account #ordersListBox{contain:layout style paint}
+body.sphera-v41-light-account:before{display:none!important}
+</style>
+<script id="sphera-v41-light-render-scheduler">
+(()=>{'use strict';
+const clean=value=>String(value??'').trim().toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ș/g,'s').replace(/ț/g,'t');
+function user(){try{return window.currentUser||(typeof currentUser!=='undefined'?currentUser:{})||{}}catch(_){return window.currentUser||{}}}
+function light(){const u=user(),roles=[u.role,u.permissionTemplate,u.permission_template,u.accountType,u.type].map(clean);return roles.some(role=>['operator','custom','iasi','master','operator master','operator-master'].includes(role))&&!roles.some(role=>['admin','administrator','warranty','operator garantii','operator-garantii'].includes(role))&&!u.permissions?.['warranties.manage']}
+function visible(id){const page=document.getElementById(id);return !!page&&!page.hidden&&!page.classList.contains('hide')}
+function makeScheduler(name,pageId,minDelay){
+ const base=window[name];if(typeof base!=='function'||base.__spheraV41)return;
+ let frame=0,timer=0,lastRun=0,pendingArgs=null,running=false;
+ function execute(){frame=0;timer=0;if(!light())return base.apply(window,pendingArgs||[]);if(!visible(pageId))return;const elapsed=performance.now()-lastRun;if(elapsed<minDelay){timer=setTimeout(()=>{timer=0;frame=requestAnimationFrame(execute)},minDelay-elapsed);return}const args=pendingArgs||[];pendingArgs=null;running=true;lastRun=performance.now();try{return base.apply(window,args)}finally{running=false}}
+ function scheduled(){if(!light())return base.apply(this,arguments);pendingArgs=arguments;if(!visible(pageId)||running||frame||timer)return;frame=requestAnimationFrame(execute)}
+ scheduled.__spheraV41=true;scheduled.__spheraV41Flush=function(){lastRun=0;scheduled()};scheduled.__spheraV41Base=base;window[name]=scheduled;return scheduled
+}
+function install(){
+ const active=light();document.body?.classList.toggle('sphera-v41-light-account',active);
+ const dashboard=makeScheduler('render','dashboard',140),status=makeScheduler('SPHERA_renderStatusOrders','processingPage',180);
+ if(status)window.renderProcessingOrders=function(){return window.SPHERA_renderStatusOrders.apply(this,arguments)};
+ if(window.showPage&&!window.showPage.__spheraV41){const baseShow=window.showPage;const wrapped=function(id){const result=baseShow.apply(this,arguments);if(light()){if(String(id)==='dashboard')window.render?.__spheraV41Flush?.();if(String(id)==='processingPage')window.SPHERA_renderStatusOrders?.__spheraV41Flush?.()}if(String(id)==='nomenclators')requestAnimationFrame(()=>{const active=window.render,direct=active?.__spheraV41Base||active;if(typeof direct==='function')direct.call(window)});return result};wrapped.__spheraV41=true;window.showPage=wrapped}
+ if(dashboard||status)document.dispatchEvent(new CustomEvent('sphera:performance-ready',{detail:{dashboard:!!dashboard,status:!!status}}));
+}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(install,0),{once:true});document.addEventListener('sphera:user-ready',()=>setTimeout(install,0));setTimeout(install,0);setTimeout(install,2400);
+})();
+</script>
+<style id="sphera-v50-ticket-scope-style">
+body:not(.sphera-v50-ticket-manager) #dashboardOpenTicketNotice{display:none!important}
+body:not(.sphera-v50-ticket-manager) #dashboardTicketsCard .ticket-admin-action,
+body:not(.sphera-v50-ticket-manager) #dashboardTicketsCard .v8-delete,
+body:not(.sphera-v50-ticket-manager) #dashboardTicketsCard .ticket-process-action,
+body:not(.sphera-v50-ticket-manager) #dashboardTicketsCard button[onclick*="SPHERA_processWarrantyTicket"],
+body:not(.sphera-v50-ticket-manager) #dashboardTicketsCard button[onclick*="SPHERA_deleteWarrantyTicket"],
+body:not(.sphera-v50-ticket-manager) #dashboardTicketsCard button[onclick*="SPHERA_editWarrantyTicket"]{display:none!important}
+</style>
+<script id="sphera-v50-ticket-scope-script">
+(()=>{'use strict';
+const TKEY='sphera_warranty_tickets_v1',text=value=>String(value??'').trim(),key=value=>text(value).toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim(),esc=value=>text(value).replace(/[&<>"']/g,character=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
+const labels={new:'Nou',review:'În verificare',info:'Necesită informații',approved:'Aprobat',created:'Comandă creată',rejected:'Respins',cancelled:'Anulat'},classes={approved:'success',created:'success',rejected:'danger',cancelled:'danger',review:'info',info:'info'};
+const trash='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 10v6M14 10v6"></path></svg>';
+const chevron=hidden=>'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+(hidden?'M6 9l6 6 6-6':'M6 15l6-6 6 6')+'"></path></svg>';
+function user(){try{return window.currentUser||(typeof currentUser!=='undefined'?currentUser:{})||{}}catch(_){return window.currentUser||{}}}
+function roles(){const u=user();return[u.role,u.permissionTemplate,u.permission_template,u.accountType,u.type].map(key)}
+function manager(){return roles().some(value=>['admin','administrator','warranty','operator garantii','operator-garantii','operator garantii custom'].includes(value))}
+function dashboardAllowed(){const u=user();return !!(u.uid||u.id||u.username||u.email)&&!roles().some(value=>['partner','viewer','operator export'].includes(value))}
+function read(name){try{const value=JSON.parse(localStorage.getItem(name)||'[]');return Array.isArray(value)?value:[]}catch(_){return[]}}
+function users(){try{return [...(Array.isArray(window.__spheraUsersCache)?window.__spheraUsersCache:[]),...(typeof USERS!=='undefined'&&Array.isArray(USERS)?USERS:[])]}catch(_){return[]}}
+function ordersList(){try{return Array.isArray(window.orders)?window.orders:(typeof orders!=='undefined'&&Array.isArray(orders)?orders:[])}catch(_){return[]}}
+function creator(ticket){const rows=users(),uid=text(ticket.createdByUid||ticket.createdById),name=key(ticket.createdByName||ticket.createdBy||ticket.operatorName);return rows.find(row=>(uid&&[row.uid,row.id,row.userId].map(text).includes(uid))||(name&&[row.name,row.displayName,row.username].map(key).includes(name)))}
+function originCenter(ticket){const author=creator(ticket),order=ordersList().find(item=>text(item.id)===text(ticket.orderId)||text(item.code)===text(ticket.orderCode));return text(ticket.createdByCenter||ticket.operatorCenter||author?.center||author?.centru||order?.createdByCenter||order?.creatorCenter||order?.center||ticket.center)}
+function visible(ticket){if(manager())return true;const center=key(user().center||user().centru);return !!center&&key(originCenter(ticket))===center}
+function tickets(){return read(TKEY).filter(ticket=>!['cancelled','created','approved','rejected'].includes(key(ticket.status))).filter(visible).sort((a,b)=>new Date(b.updatedAt||b.createdAt||0)-new Date(a.updatedAt||a.createdAt||0))}
+function anchor(dashboard){return document.getElementById('dashboardOrdersCard')||document.getElementById('ordersListBox')?.closest('.card')||[...dashboard.querySelectorAll('.card')].find(card=>/Comenzi RX/i.test(card.querySelector('h2')?.textContent||''))}
+function cardRow(ticket){const actions='<button class="btn ghost" onclick="SPHERA_viewWarrantyTicket(\''+esc(ticket.id)+'\')">Detalii</button>'+(manager()&&['new','review'].includes(ticket.status)?'<button class="btn ticket-process-action" onclick="SPHERA_processWarrantyTicket(\''+esc(ticket.id)+'\')">Procesează</button>':'')+(manager()?'<button class="btn ghost ticket-admin-action delete v8-delete" title="Șterge tichetul" onclick="SPHERA_deleteWarrantyTicket(\''+esc(ticket.id)+'\')">'+trash+'</button>':'');return '<article class="dashboard-ticket-row v4 v10 v14 ticket-card ticket-summary-only '+(ticket.status==='new'?'attention':'')+'" data-ticket-id="'+esc(ticket.id)+'"><div class="ticket-card-head"><div><div class="ticket-title"><b>'+esc(ticket.number||ticket.id)+'</b><span class="ticket-status '+(classes[ticket.status]||'')+'">'+(labels[ticket.status]||'Nou')+'</span></div><div class="ticket-subtitle">'+esc(ticket.orderCode)+' · '+esc(originCenter(ticket)||'Nespecificat')+' · '+esc(ticket.clientName||'Nespecificat')+'</div></div><div class="ticket-actions">'+actions+'</div></div></article>'}
+function renderNotice(list){let notice=document.getElementById('dashboardOpenTicketNotice');if(!manager()){notice?.remove();return}const dashboard=document.getElementById('dashboard'),stats=dashboard?.querySelector(':scope>.grid.dashboard-stats');if(!dashboard||!stats||!list.length){notice?.remove();return}if(!notice){notice=document.createElement('div');notice.id='dashboardOpenTicketNotice'}notice.setAttribute('role','button');notice.tabIndex=0;notice.innerHTML='<span>Ai <b>'+list.length+'</b> '+(list.length===1?'tichet deschis':'tichete deschise')+'</span>';notice.onclick=()=>document.getElementById('menuWarranties')?.click();if(stats.previousElementSibling!==notice)stats.parentNode.insertBefore(notice,stats)}
+function renderCard(list){const dashboard=document.getElementById('dashboard'),orderCard=dashboard&&anchor(dashboard);let card=document.getElementById('dashboardTicketsCard');if(!dashboardAllowed()){card?.remove();return}if(!dashboard||!orderCard)return;if(!card){card=document.createElement('div');card.id='dashboardTicketsCard';card.className='card dashboard-ticket-card';orderCard.insertAdjacentElement('afterend',card)}const hidden=card.querySelector('.dashboard-ticket-body')?.classList.contains('hide'),signature=[key(user().center),manager(),...list.map(ticket=>[ticket.id,ticket.status,ticket.updatedAt,originCenter(ticket)].join(':'))].join('|');if(card.dataset.v50Signature===signature)return;card.dataset.v50Signature=signature;card.innerHTML='<div class="ticket-panel-head"><div><h2>Tichete deschise</h2><div class="muted">Solicitări de garanție și neacomodare</div></div><button class="ticket-collapse icon-btn list-toggle" type="button" title="'+(hidden?'Afișează lista':'Ascunde lista')+'">'+chevron(hidden)+'</button></div><div class="dashboard-ticket-body'+(hidden?' hide':'')+'"><input class="dashboard-ticket-search-v14" type="search" placeholder="Caută după număr tichet, cod comandă, centru, client sau pacient"><div class="dashboard-ticket-list v4">'+(list.map(cardRow).join('')||'<div class="ticket-empty">Nu există tichete deschise pentru centrul tău.</div>')+'</div></div>';const button=card.querySelector('.ticket-collapse');button.onclick=()=>{const body=card.querySelector('.dashboard-ticket-body');body.classList.toggle('hide');card.dataset.v50Signature='';schedule()};const input=card.querySelector('input'),rows=[...card.querySelectorAll('.ticket-card')];input.oninput=()=>{const query=key(input.value);rows.forEach((row,index)=>row.style.display=!query||key(list[index]?[list[index].number,list[index].orderCode,originCenter(list[index]),list[index].clientName,list[index].patient].join(' '):'').includes(query)?'':'none')}}
+function enrichOwnTickets(){const u=user(),center=text(u.center||u.centru),uid=text(u.uid||u.id);if(!center||!uid)return;const list=read(TKEY);let changed=false;list.forEach(ticket=>{if(!ticket.createdByCenter&&text(ticket.createdByUid||ticket.createdById)===uid){ticket.createdByCenter=center;changed=true;window.SPHERA_DB?.collection('warrantyTickets').doc(text(ticket.id)).set({createdByCenter:center},{merge:true}).catch(()=>{})}});if(changed)localStorage.setItem(TKEY,JSON.stringify(list))}
+let frame=0;function run(){frame=0;const active=manager();document.body?.classList.toggle('sphera-v50-ticket-manager',active);enrichOwnTickets();const list=tickets();renderNotice(list);renderCard(list)}function schedule(){if(frame)return;frame=requestAnimationFrame(run)}
+document.addEventListener('DOMContentLoaded',schedule,{once:true});document.addEventListener('sphera:user-ready',schedule);document.addEventListener('sphera:tickets-updated',schedule);document.addEventListener('sphera:orders-updated',schedule);document.addEventListener('sphera:dashboard-rendered',schedule);document.addEventListener('click',event=>{if(event.target.closest?.('#menuDashboard'))setTimeout(schedule,80)},true);window.addEventListener('storage',event=>{if(event.key===TKEY)schedule()});setTimeout(schedule,0);
+})();
+</script>
+<script id="final-v52-loader">
+(()=>{'use strict';const install=()=>window.SPHERA_V52_INSTALL?.();document.addEventListener('DOMContentLoaded',()=>setTimeout(install,120),{once:true});document.addEventListener('sphera:user-ready',()=>setTimeout(install,120));document.addEventListener('sphera:warranties-updated',()=>setTimeout(install,60));setTimeout(install,2400)})();
+</script>
+<style id="sphera-v55-template-editor-style">
+.permission-template-manage{margin-left:8px;padding:9px 13px!important;font-size:12px!important}.template-editor-title{display:flex;align-items:center;justify-content:space-between;gap:12px}.template-editor-title h3{margin:0}.template-editor-notice{padding:11px 13px;border:1px solid #b7ccff;border-radius:12px;background:#f5f8ff;color:#1849a9;font-size:12px;font-weight:700}.template-editor-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}.template-editor-grid .permission-template{width:100%}.template-editor-scope{display:grid;grid-template-columns:minmax(220px,320px) 1fr;gap:12px;align-items:center}.template-editor-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-top:1px solid #e4e7ec}.template-editor-state{color:#667085;font-size:12px}.template-editor-state.ok{color:#067647}.template-editor-state.error{color:#d92d20}@media(max-width:760px){.template-editor-grid{grid-template-columns:1fr 1fr}.template-editor-scope{grid-template-columns:1fr}}
+</style>
+<script id="sphera-v55-template-editor-script">
+(()=>{'use strict';
+const STORE='sphera_permission_templates_v2',text=value=>String(value??'').trim(),clean=value=>text(value).toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim(),esc=value=>text(value).replace(/[&<>"']/g,character=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
+const GROUPS=[
+ ['Meniu și pagini',[['pages.dashboard','Dashboard'],['pages.status','Status comenzi'],['pages.clients','Clienți'],['pages.offers','Oferte clienți'],['pages.history','Istoric comenzi'],['pages.warranties','Garanții'],['pages.statistics','Statistici'],['pages.nomenclators','Nomenclatoare'],['pages.settings','Setări']]],
+ ['Comenzi',[['dashboard.view','Acces Dashboard'],['orders.view','Vizualizare comenzi'],['orders.create','Comandă nouă'],['orders.repeat','Repetă comandă'],['orders.editOwn','Editare comenzi proprii'],['orders.editAll','Editare toate comenzile'],['orders.status','Modificare status'],['orders.deliver','Confirmare Livrată'],['orders.delete','Ștergere comenzi'],['orders.history','Istoric comenzi'],['orders.deleted','Comenzi șterse'],['orders.export','Export Excel']]],
+ ['Clienți și date',[['clients.view','Vizualizare clienți'],['clients.edit','Editare clienți'],['clients.manage','Administrare clienți'],['nomenclators.manage','Administrare nomenclatoare']]],
+ ['Oferte și istoric',[['offers.view','Vizualizare oferte'],['offers.manage','Administrare oferte'],['offers.upload','Încărcare PDF ofertă'],['legacyHistory.view','Vizualizare istoric importat'],['legacyHistory.import','Import istoric'],['legacyHistory.allCenters','Toate centrele în istoric']]],
+ ['Garanții',[['warranties.view','Vizualizare garanții'],['warranties.manage','Operare garanții'],['warranties.process','Generare coduri garanții']]],
+ ['Administrare',[['users.manage','Utilizatori și drepturi'],['bugs.report','Raportare bug'],['bugs.manage','Vizualizare raportări']]]
+];
+const KEYS=GROUPS.flatMap(group=>group[1].map(item=>item[0])),blank=()=>Object.fromEntries(KEYS.map(key=>[key,false])),rights=(...keys)=>Object.assign(blank(),Object.fromEntries(keys.map(key=>[key,true])));
+let activeKey='',draft=null,cloudLoaded=false;
+function templates(){return window.SPHERA_PERMISSION_TEMPLATES||{}}
+function addSalesTemplate(){const list=templates();if(!list.sales)list.sales={label:'Reprezentant vânzări',description:'Vizualizare în zonele alocate',role:'sales',scope:{mode:'selected',centers:[]},permissions:rights('pages.dashboard','pages.status','pages.clients','pages.offers','pages.history','dashboard.view','orders.view','orders.history','clients.view','offers.view','legacyHistory.view','bugs.report')};window.SPHERA_PERMISSION_TEMPLATES=list}
+function readStored(){try{return JSON.parse(localStorage.getItem(STORE)||'{}')||{}}catch(_){return{}}}
+function applyDefinitions(definitions){const list=templates();Object.entries(definitions||{}).forEach(([key,value])=>{if(!list[key]||key==='custom')return;if(value.permissions)list[key].permissions={...blank(),...value.permissions};if(value.scope)list[key].scope={mode:value.scope.mode||list[key].scope.mode,centers:[]}});window.SPHERA_PERMISSION_TEMPLATES=list}
+function saveStored(){const output={};Object.entries(templates()).forEach(([key,preset])=>{if(key!=='custom'&&!preset.hidden)output[key]={permissions:{...preset.permissions},scope:{mode:preset.scope?.mode||'center',centers:[]}}});localStorage.setItem(STORE,JSON.stringify(output))}
+function users(){try{return Array.isArray(USERS)?USERS:(Array.isArray(window.__spheraUsersCache)?window.__spheraUsersCache:[])}catch(_){return Array.isArray(window.__spheraUsersCache)?window.__spheraUsersCache:[]}}
+function inferred(user){const saved=clean(user?.permissionTemplate||user?.permission_template);if(saved)return saved;const role=clean(user?.role);if(['admin','administrator'].includes(role))return'admin';if(['iasi','master','operator master'].includes(role))return'master';if(['partner','partener'].includes(role))return'partner';if(['sales','reprezentant vanzari'].includes(role))return'sales';return role==='custom'?'custom':'operator'}
+function affected(key){return users().filter(user=>inferred(user)===key&&inferred(user)!=='custom')}
+function ensureButton(){const card=document.getElementById('permissionsCard'),head=card?.querySelector('.permission-card-head');if(!head||head.querySelector('.permission-template-manage'))return;const button=document.createElement('button');button.type='button';button.className='btn ghost permission-template-manage';button.textContent='Editează șabloanele';button.onclick=showTemplateHome;head.querySelector('.permission-summary')?.insertAdjacentElement('beforebegin',button)}
+function showTemplateHome(){const editor=document.getElementById('permissionEditor');if(!editor)return;activeKey='';draft=null;const buttons=Object.entries(templates()).filter(([key,preset])=>key!=='custom'&&!preset.hidden).map(([key,preset])=>'<button type="button" class="permission-template" onclick="SPHERA_editPermissionTemplate(\''+key+'\')"><b>'+esc(preset.label)+'</b><small>'+esc(preset.description)+'</small></button>').join('');editor.innerHTML='<div class="permission-editor-head"><div class="template-editor-title"><div><h3>Administrare șabloane</h3><p>Selectează rolul pe care vrei să îl modifici.</p></div></div></div><div class="permission-editor-body"><div class="template-editor-notice">Salvarea unui șablon actualizează toate conturile care folosesc rolul. Conturile Personalizat nu se modifică.</div><div class="template-editor-grid">'+buttons+'</div></div>'}
+function renderTemplate(){const editor=document.getElementById('permissionEditor'),preset=templates()[activeKey];if(!editor||!preset||!draft)return;const count=KEYS.filter(key=>draft.permissions[key]).length,buttons=Object.entries(templates()).filter(([key,item])=>key!=='custom'&&!item.hidden).map(([key,item])=>'<button type="button" class="permission-template '+(key===activeKey?'selected':'')+'" onclick="SPHERA_editPermissionTemplate(\''+key+'\')"><b>'+esc(item.label)+'</b><small>'+esc(item.description)+'</small></button>').join(''),groups=GROUPS.map(group=>'<div class="permission-group"><h5>'+esc(group[0])+'</h5>'+group[1].map(item=>'<label class="permission-row"><span><b>'+esc(item[1])+'</b><small>'+esc(item[0])+'</small></span><span class="permission-switch"><input type="checkbox" '+(draft.permissions[item[0]]?'checked':'')+' onchange="SPHERA_toggleTemplatePermission(\''+item[0]+'\',this.checked)"><i></i></span></label>').join('')+'</div>').join(''),scopeOptions=[['own','Doar comenzile proprii'],['center','Centrul propriu'],['selected','Zone selectate pentru fiecare cont'],['all','Toate centrele']].map(item=>'<option value="'+item[0]+'" '+(draft.scope.mode===item[0]?'selected':'')+'>'+item[1]+'</option>').join('');editor.innerHTML='<div class="permission-editor-head"><div class="template-editor-title"><div><h3>'+esc(preset.label)+'</h3><p>'+affected(activeKey).length+' conturi folosesc acest șablon.</p></div><button class="btn ghost" type="button" onclick="SPHERA_openTemplateManager()">Înapoi</button></div></div><div class="permission-editor-body"><div class="permission-section"><div class="permission-section-title"><h4>Șabloane</h4><span>'+count+' din '+KEYS.length+' drepturi active</span></div><div class="template-editor-grid">'+buttons+'</div></div><div class="permission-section"><div class="permission-section-title"><h4>Aria de vizibilitate</h4><span>Zonele individuale se păstrează</span></div><div class="template-editor-scope"><select onchange="SPHERA_changeTemplateScope(this.value)">'+scopeOptions+'</select><div class="muted">Pentru zone selectate, fiecare cont își păstrează centrele sau județele alocate.</div></div></div><div class="permission-section"><div class="permission-section-title"><h4>Drepturile șablonului</h4><span>Se aplică tuturor conturilor rolului</span></div><div class="permission-groups">'+groups+'</div></div></div><div class="template-editor-actions"><span class="template-editor-state" id="templateEditorState">Modificările nu sunt salvate.</span><button class="btn" id="templateSaveButton" type="button" onclick="SPHERA_savePermissionTemplate()">Salvează șablonul</button></div>'}
+window.SPHERA_openTemplateManager=showTemplateHome;
+window.SPHERA_editPermissionTemplate=function(key){const preset=templates()[key];if(!preset||key==='custom')return;activeKey=key;draft={permissions:{...blank(),...preset.permissions},scope:{mode:preset.scope?.mode||'center',centers:[]}};renderTemplate()};
+window.SPHERA_toggleTemplatePermission=function(key,enabled){if(!draft||!KEYS.includes(key))return;draft.permissions[key]=!!enabled;renderTemplate()};
+window.SPHERA_changeTemplateScope=function(mode){if(!draft||!['own','center','selected','all'].includes(mode))return;draft.scope.mode=mode;renderTemplate()};
+async function saveRemoteTemplate(key,preset){if(!window.SPHERA_DB)return;await window.SPHERA_DB.collection('permissionTemplates').doc(key).set({key,label:preset.label,description:preset.description,role:preset.role,permissions:preset.permissions,scope:preset.scope,updatedAt:window.firebase?.firestore?.FieldValue?.serverTimestamp?.()||new Date().toISOString()},{merge:true})}
+async function propagate(key,preset){const list=affected(key),current=window.currentUser||(typeof currentUser!=='undefined'?currentUser:null);for(const user of list){user.permissionTemplate=key;user.permissions={...preset.permissions};const existing=user.accessScope&&typeof user.accessScope==='object'?user.accessScope:{};user.accessScope={mode:preset.scope.mode,centers:preset.scope.mode==='selected'?[...(existing.centers||user.warehouses||[])]:[]};user.role=preset.role;user.permissionsConfigured=true;user.profileMissing=false;if(current&&(text(current.uid||current.id)===text(user.uid||user.id)||clean(current.username)===clean(user.username)))Object.assign(current,{permissionTemplate:key,permissions:{...user.permissions},accessScope:{...user.accessScope},role:user.role})}
+ try{saveUsers()}catch(_){localStorage.setItem('sphera_users_v1',JSON.stringify(users()))}window.__spheraUsersCache=users().slice();if(window.SPHERA_DB){let batch=window.SPHERA_DB.batch(),count=0;for(const user of list){const id=user.uid||user.id;if(!id)continue;batch.set(window.SPHERA_DB.collection('users').doc(text(id)),{role:user.role,permissionTemplate:key,permissions:user.permissions,accessScope:user.accessScope,warehouses:Array.isArray(user.warehouses)?user.warehouses:[],permissionsConfigured:true,profileMissing:false},{merge:true});count++}if(count)await batch.commit()}return list.length}
+window.SPHERA_savePermissionTemplate=async function(){if(!activeKey||!draft)return;const button=document.getElementById('templateSaveButton'),state=document.getElementById('templateEditorState'),preset=templates()[activeKey];if(button){button.disabled=true;button.textContent='Se salvează...'}try{preset.permissions={...draft.permissions};preset.scope={mode:draft.scope.mode,centers:[]};saveStored();await saveRemoteTemplate(activeKey,preset);const count=await propagate(activeKey,preset);window.renderPermissionsPanel?.();showTemplateHome();const editor=document.getElementById('permissionEditor');editor?.insertAdjacentHTML('afterbegin','<div class="template-editor-notice">Șablonul '+esc(preset.label)+' a fost actualizat pentru '+count+' conturi.</div>');window.SPHERA_APPLY_PERMISSION_UI?.()}catch(error){console.error('SPHERA template save',error);if(state){state.textContent=error?.message||'Șablonul nu a putut fi salvat.';state.className='template-editor-state error'}if(button){button.disabled=false;button.textContent='Salvează șablonul'}}};
+async function loadCloud(){if(cloudLoaded||!window.SPHERA_DB)return;cloudLoaded=true;try{const snapshot=await window.SPHERA_DB.collection('permissionTemplates').get(),definitions={};snapshot.docs.forEach(doc=>definitions[doc.id]=doc.data());applyDefinitions(definitions);saveStored();window.renderPermissionsPanel?.();ensureButton()}catch(error){console.error('SPHERA template load',error)}}
+function install(){addSalesTemplate();applyDefinitions(readStored());ensureButton();if(typeof window.roleLabel==='function'&&!window.roleLabel.__spheraV55){const base=window.roleLabel,wrapped=function(role){return ['sales','reprezentant vanzari'].includes(clean(role))?'Reprezentant vânzări':base.apply(this,arguments)};wrapped.__spheraV55=true;window.roleLabel=wrapped}if(document.getElementById('permissionsCard')&&!document.querySelector('.permission-user-card.selected'))showTemplateHome();loadCloud()}
+const previousRender=window.renderPermissionsPanel;if(typeof previousRender==='function')window.renderPermissionsPanel=function(){const result=previousRender.apply(this,arguments);setTimeout(()=>{ensureButton();addSalesTemplate()},0);return result};
+document.addEventListener('DOMContentLoaded',()=>setTimeout(install,300),{once:true});document.addEventListener('sphera:user-ready',()=>setTimeout(install,300));document.addEventListener('click',event=>{if(event.target.closest?.('#menuSettings'))setTimeout(install,180)},true);setTimeout(install,2200);
 })();
 </script>
