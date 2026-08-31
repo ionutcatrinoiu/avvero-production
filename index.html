@@ -1333,6 +1333,47 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(enforceMenu,300),{on
 setInterval(enforceMenu,250);
 })();
 </script>
+<style id="sphera-warranty-access-ticket-stats-v18-style">
+body.sphera-v18-hide-warranties #menuWarranties,
+body.sphera-v18-hide-warranties [data-v18-warranty-menu="1"]{display:none!important}
+#statisticsDetailRows tr.statistics-detail-v18{display:grid!important;grid-template-columns:1.15fr 1.15fr .8fr .8fr 1.45fr .85fr .7fr;gap:0;border-bottom:1px solid #e4e7ec;padding:8px 0}
+#statisticsDetailRows tr.statistics-detail-v18 td{display:block!important;border:0!important;min-width:0;padding:7px 12px!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+#statisticsDetailRows tr.statistics-detail-v18 td::before{content:attr(data-v18-label);display:block;margin-bottom:4px;color:#667085;font-size:10px;font-weight:600}
+#statisticsDetailRows tr.statistics-detail-v18 td:nth-child(1){grid-column:1;grid-row:1}
+#statisticsDetailRows tr.statistics-detail-v18 td:nth-child(2){grid-column:2;grid-row:1}
+#statisticsDetailRows tr.statistics-detail-v18 td:nth-child(3){grid-column:3;grid-row:1}
+#statisticsDetailRows tr.statistics-detail-v18 td:nth-child(4){grid-column:4;grid-row:1}
+#statisticsDetailRows tr.statistics-detail-v18 td:nth-child(5){grid-column:5;grid-row:1}
+#statisticsDetailRows tr.statistics-detail-v18 td:nth-child(7){grid-column:6;grid-row:1}
+#statisticsDetailRows tr.statistics-detail-v18 td:nth-child(8){grid-column:7;grid-row:1}
+#statisticsDetailRows tr.statistics-detail-v18 td:nth-child(6){grid-column:1/5;grid-row:2;background:#f8fafc;border-radius:10px!important;margin:2px 6px 0 10px}
+#statisticsDetailRows tr.statistics-detail-v18 td:nth-child(9){grid-column:5/8;grid-row:2;background:#f8fafc;border-radius:10px!important;margin:2px 10px 0 6px}
+#statisticsDetailRows tr.statistics-detail-v18 td:nth-child(6),#statisticsDetailRows tr.statistics-detail-v18 td:nth-child(9){line-height:1.45;overflow-wrap:anywhere}
+#statisticsDetailRows tr.statistics-detail-v18 td[colspan]{grid-column:1/-1!important;grid-row:1!important;background:transparent!important;margin:0!important;text-align:center}
+@media(max-width:900px){#statisticsDetailRows tr.statistics-detail-v18{grid-template-columns:1fr 1fr}#statisticsDetailRows tr.statistics-detail-v18 td{grid-column:auto!important;grid-row:auto!important;margin:2px 0!important}#statisticsDetailRows tr.statistics-detail-v18 td:nth-child(6),#statisticsDetailRows tr.statistics-detail-v18 td:nth-child(9){grid-column:1/-1!important}}
+</style>
+<script id="sphera-warranty-access-ticket-stats-v18-script">
+(function(){
+'use strict';
+const TICKET_KEY='sphera_warranty_tickets_v1';
+const text=value=>String(value??'').trim();
+const clean=value=>text(value).toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+function current(){try{return window.currentUser||(typeof currentUser!=='undefined'?currentUser:{})||{}}catch(_){return window.currentUser||{}}}
+function warrantyMenuAllowed(){const user=current(),identities=[user.permissionTemplate,user.permission_template,user.role,user.accountType,user.type].map(clean).filter(Boolean);return identities.some(value=>['admin','administrator','warranty','operator garantii','operator garantii custom','operator-garantii'].includes(value))}
+function enforceWarrantyMenu(){const allowed=warrantyMenuAllowed();document.body?.classList.toggle('sphera-v18-hide-warranties',!allowed);const candidates=[document.getElementById('menuWarranties'),...document.querySelectorAll('.menu button,.top-menu button,header button,nav button')];candidates.forEach(button=>{if(!button||clean(button.textContent)!=='garantii')return;button.dataset.v18WarrantyMenu='1';button.hidden=!allowed;if(allowed){button.classList.remove('hide');button.style.removeProperty('display')}else{button.classList.add('hide');button.style.setProperty('display','none','important')}});if(!allowed){const page=document.getElementById('warrantiesPage');if(page&&!page.classList.contains('hide')){page.classList.add('hide');document.getElementById('dashboard')?.classList.remove('hide')}}}
+function tickets(){try{const list=JSON.parse(localStorage.getItem(TICKET_KEY)||'[]');return Array.isArray(list)?list:[]}catch(_){return[]}}
+function ticketFor(orderId){return tickets().find(ticket=>text(ticket.orderId)===text(orderId)&&clean(ticket.status)!=='cancelled')}
+function syncOrderTicketButtons(){document.querySelectorAll('.order-details-modal .ticket-request-btn[data-v18-order-id]').forEach(button=>{const existing=ticketFor(button.dataset.v18OrderId);if(!existing)return;button.textContent='Vezi tichetul';button.onclick=()=>window.SPHERA_viewWarrantyTicket?.(existing.id)})}
+function installDetailsButtonHook(){const active=window.SPHERA_addWarrantyDetailsButton;if(typeof active!=='function'||active.__spheraV18)return;function wrapped(id){const result=active.apply(this,arguments);requestAnimationFrame(()=>{const modal=[...document.querySelectorAll('.order-details-modal')].pop(),button=modal?.querySelector('.ticket-request-btn');if(button){button.dataset.v18OrderId=text(id);syncOrderTicketButtons()}});return result}wrapped.__spheraV18=true;window.SPHERA_addWarrantyDetailsButton=wrapped}
+const detailLabels=['Cod inițial','Cod refăcut','Data','Centru','Client','Produs','Tip','Discount','Mențiuni'];
+function formatStatisticsDetails(){document.querySelectorAll('#statisticsDetailRows tr').forEach(row=>{row.classList.add('statistics-detail-v18');[...row.children].forEach((cell,index)=>cell.dataset.v18Label=cell.hasAttribute('colspan')?'':detailLabels[index]||'')})}
+function enforce(){enforceWarrantyMenu();installDetailsButtonHook();syncOrderTicketButtons();formatStatisticsDetails()}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(enforce,600),{once:true});
+document.addEventListener('sphera:tickets-updated',enforce);
+window.addEventListener('storage',event=>{if(event.key===TICKET_KEY)enforce()});
+setInterval(enforce,400);
+})();
+</script>
 <script id="sphera-v143-response-performance-engine">
 document.addEventListener('DOMContentLoaded',function(){
 'use strict';
@@ -1518,7 +1559,7 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(decorate,1200),{once
  function installDetailsButton(){
   window.SPHERA_addWarrantyDetailsButton=function(id){const order=orderById(id),modal=[...document.querySelectorAll('.order-details-modal')].pop();if(!order||!modal)return;modal.querySelector('.warranty-create-btn,.ticket-request-btn')?.remove();if(key(order.workflowStatus||order.status)!=='livrata'||!canRequest())return;const row=modal.querySelector('.order-number-row');if(!row)return;const existing=ticketForOrder(id),button=document.createElement('button');button.type='button';button.className='btn ghost ticket-request-btn';if(existing){button.textContent='Vezi tichetul';button.onclick=()=>window.SPHERA_viewWarrantyTicket(existing.id)}else if(isWarrantyOperator()){button.textContent='Înregistrează garanție';button.onclick=()=>window.SPHERA_openWarrantyForm?.(id)}else{button.textContent='Deschide tichet';button.onclick=()=>window.SPHERA_openWarrantyRequest(id)}row.appendChild(button)};
  }
- function startSync(){if(syncStarted||!window.SPHERA_DB)return;syncStarted=true;window.SPHERA_DB.collection(COLLECTION).limit(2000).onSnapshot(snapshot=>{const merged=new Map([...readLocal(),...tickets].filter(Boolean).map(item=>[text(item.id),item]));snapshot.docChanges().filter(change=>change.type==='removed').forEach(change=>merged.delete(text(change.doc.id)));snapshot.docs.forEach(doc=>merged.set(text(doc.id),{id:doc.id,...doc.data()}));tickets=[...merged.values()].filter(item=>text(item.id));writeLocal();render()},error=>console.error('SPHERA tickets sync',error))}
+ function startSync(){if(syncStarted||!window.SPHERA_DB)return;syncStarted=true;window.SPHERA_DB.collection(COLLECTION).limit(2000).onSnapshot(snapshot=>{tickets=snapshot.docs.map(doc=>({id:doc.id,...doc.data()})).filter(item=>text(item.id));writeLocal();render()},error=>console.error('SPHERA tickets sync',error))}
  function boot(){tickets=readLocal();installPermissions();installDetailsButton();ensurePage();render();startSync();const app=document.getElementById('appScreen');if(app)new MutationObserver(()=>{installPermissions();installDetailsButton();ensurePage();render();startSync()}).observe(app,{attributes:true,attributeFilter:['style','class']})}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,900),{once:true});else setTimeout(boot,900)
 })();
@@ -3753,7 +3794,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  function addDetailsButton(id){const order=orderById(id),modal=[...document.querySelectorAll('.order-details-modal')].pop();if(!order||!modal)return;if(!canRegisterWarranty(order)||warrantyAlreadyRegistered(order)||key(order.workflowStatus||order.status)!=='livrata'){modal.querySelector('.warranty-create-btn')?.remove();return}if(modal.querySelector('.warranty-create-btn'))return;const row=modal.querySelector('.order-number-row');if(!row)return;const button=document.createElement('button');button.type='button';button.className='btn ghost warranty-create-btn';button.textContent='Înregistrează garanție';button.onclick=()=>window.SPHERA_openWarrantyForm(id);row.appendChild(button)}
  window.SPHERA_addWarrantyDetailsButton=addDetailsButton;
  const priorDetails=window.showOrderDetails;if(typeof priorDetails==='function')window.showOrderDetails=function(id){const result=priorDetails.apply(this,arguments);setTimeout(()=>addDetailsButton(id),160);return result};
- function startSync(){if(syncStarted||!window.SPHERA_DB)return;syncStarted=true;window.SPHERA_DB.collection(COLLECTION).orderBy('requestedAt','desc').limit(2000).onSnapshot(snapshot=>{const merged=new Map([...readLocal(),...warranties].filter(Boolean).map(item=>[text(item.id),item]));snapshot.docs.forEach(doc=>merged.set(text(doc.id),{id:doc.id,...doc.data()}));warranties=[...merged.values()].filter(item=>text(item.id));hydrateWarrantyRecords();writeLocal();render()},error=>console.error('SPHERA warranties sync',error))}
+ function startSync(){if(syncStarted||!window.SPHERA_DB)return;syncStarted=true;window.SPHERA_DB.collection(COLLECTION).orderBy('requestedAt','desc').limit(2000).onSnapshot(snapshot=>{warranties=snapshot.docs.map(doc=>({id:doc.id,...doc.data()})).filter(item=>text(item.id));hydrateWarrantyRecords();writeLocal();render()},error=>console.error('SPHERA warranties sync',error))}
  function boot(){warranties=readLocal();ensureUi();render();startSync();installWarrantyDeleteHook();const app=document.getElementById('appScreen');if(app)new MutationObserver(()=>{ensureUi();startSync();installWarrantyDeleteHook()}).observe(app,{attributes:true,attributeFilter:['style','class']})}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,500),{once:true});else setTimeout(boot,500)
 })();
@@ -5536,6 +5577,7 @@ cursor:pointer;
     const l=document.getElementById('loginScreen'),a=document.getElementById('appScreen');
     if(l){l.hidden=true;l.classList.add('hide');l.style.setProperty('display','none','important');}
     if(a){a.hidden=false;a.classList.remove('hide');a.style.setProperty('display','block','important');}
+    window.SPHERA_SYNC_WARRANTY_MENU?.();
   }
   function cleanUsername(v){return String(v||'').trim().toLowerCase().replace(/\s+/g,'').replace(/[^a-z0-9._-]/g,'');}
   function normalizeRole(v){
@@ -18945,7 +18987,7 @@ function enforce(){
  const menu=document.getElementById('menuWarranties');if(menu){const allowed=warrantyAccess();menu.hidden=!allowed;menu.classList.toggle('hide',!allowed);menu.style.setProperty('display',allowed?'inline-flex':'none','important')}
  document.querySelectorAll('.ticket-modal').forEach(modal=>{
   [...modal.querySelectorAll('.field')].filter(field=>/Soluția solicitată/i.test(field.textContent)).forEach(field=>field.remove());
-  const discount=modal.querySelector('#ticketDiscount,#discount');if(discount){const field=discount.closest('div');const label=field?.querySelector('label');if(label)label.textContent='Discount (%)';field?.querySelector('.input-suffix')?.remove();if(discount.value==='50'&&!discount.dataset.userChanged){discount.value='';discount.addEventListener('input',()=>discount.dataset.userChanged='1',{once:true})}}
+  const discount=modal.querySelector('#ticketDiscount,#discount');if(discount){const field=discount.closest('div');const label=field?.querySelector('label');if(label)label.textContent='Discount (%)';field?.querySelector('.input-suffix')?.remove();discount.placeholder=''}
  });
  if(window.SPHERA_deleteWarrantyRemakesV4)window.SPHERA_deleteWarrantyRemakes=window.SPHERA_deleteWarrantyRemakesV4
 }
@@ -19025,7 +19067,7 @@ function latestTicket(orderId){return read().filter(ticket=>text(ticket.orderId)
 function fillWarranty(orderId){const modal=[...document.querySelectorAll('.warranty-modal')].pop(),ticket=latestTicket(orderId);if(!modal||!ticket)return;const requestType=modal.querySelector('#warrantyRequestType');if(requestType&&[...requestType.options].some(option=>option.value===ticket.requestType)){requestType.value=ticket.requestType;requestType.dispatchEvent(new Event('change',{bubbles:true}))}const reason=modal.querySelector('#warrantyReason');if(reason&&text(ticket.reason)){reason.value=sentence(ticket.reason);reason.dispatchEvent(new Event('input',{bubbles:true}))}const discount=modal.querySelector('#warrantyDiscount');if(discount&&ticket.requestType!=='nonadaptation'){const value=ticket.billingMethod==='discount'&&Number.isFinite(Number(ticket.discountPercent))?Number(ticket.discountPercent):ticket.billingMethod==='free'?100:null;if(value!==null){discount.value=String(value);discount.dispatchEvent(new Event('input',{bubbles:true}))}}}
 const originalOpen=window.SPHERA_openWarrantyForm;if(typeof originalOpen==='function'&&!originalOpen.__ticketPrefillV11){const wrapped=function(orderId){const result=originalOpen.apply(this,arguments);requestAnimationFrame(()=>fillWarranty(orderId));setTimeout(()=>fillWarranty(orderId),80);return result};wrapped.__ticketPrefillV11=true;window.SPHERA_openWarrantyForm=wrapped}
 function refreshSurfaces(){const panel=document.querySelector('#warrantyTicketsHost .ticket-panel-v2');if(panel)panel.remove();try{window.render?.()}catch(_){}window.dispatchEvent(new CustomEvent('sphera:tickets-updated'))}
-function startLive(){if(live||!window.SPHERA_DB)return;live=true;try{unsubscribe=window.SPHERA_DB.collection(COLLECTION).limit(2000).onSnapshot(snapshot=>{const merged=new Map(read().filter(Boolean).map(ticket=>[text(ticket.id),ticket]));snapshot.docChanges().filter(change=>change.type==='removed').forEach(change=>merged.delete(text(change.doc.id)));snapshot.docs.forEach(doc=>merged.set(text(doc.id),{id:doc.id,...doc.data()}));write([...merged.values()].filter(ticket=>text(ticket.id)));refreshSurfaces()},error=>{console.error('SPHERA ticket live sync',error);live=false;try{unsubscribe?.()}catch(_){}unsubscribe=null})}catch(error){console.error('SPHERA ticket live start',error);live=false}}
+function startLive(){if(live||!window.SPHERA_DB)return;live=true;try{unsubscribe=window.SPHERA_DB.collection(COLLECTION).limit(2000).onSnapshot(snapshot=>{write(snapshot.docs.map(doc=>({id:doc.id,...doc.data()})).filter(ticket=>text(ticket.id)));refreshSurfaces()},error=>{console.error('SPHERA ticket live sync',error);live=false;try{unsubscribe?.()}catch(_){}unsubscribe=null})}catch(error){console.error('SPHERA ticket live start',error);live=false}}
 document.addEventListener('DOMContentLoaded',()=>setTimeout(startLive,700),{once:true});setInterval(startLive,2000);
 })();
 </script>
@@ -19134,3 +19176,44 @@ body.sphera-no-warranty-header #menuWarranties{display:none!important}
 #dashboardTicketsCard .ticket-actions .btn:not(.ghost),#warrantyTicketsHost .ticket-actions .btn:not(.ghost){color:#344054!important;transition:background-color .15s ease,color .15s ease,border-color .15s ease!important}
 #dashboardTicketsCard .ticket-actions .btn:not(.ghost):hover,#dashboardTicketsCard .ticket-actions .btn:not(.ghost):focus-visible,#warrantyTicketsHost .ticket-actions .btn:not(.ghost):hover,#warrantyTicketsHost .ticket-actions .btn:not(.ghost):focus-visible{border-color:#165dff!important;background:#165dff!important;color:#fff!important}
 </style>
+<style id="sphera-ticket-dashboard-live-v17-style">
+#dashboardTicketsCard .ticket-summary.compact{display:none!important}
+#dashboardTicketsCard:not(.dashboard-search-active) .ticket-empty{display:none!important}
+</style>
+<script id="sphera-ticket-dashboard-live-v17-script">
+(function(){
+'use strict';
+function enforce(){const card=document.getElementById('dashboardTicketsCard'),search=card?.querySelector('.dashboard-ticket-search-v14');card?.classList.toggle('dashboard-search-active',!!String(search?.value||'').trim());document.querySelectorAll('.ticket-modal #discount,.ticket-modal #ticketDiscount').forEach(input=>input.removeAttribute('placeholder'))}
+document.addEventListener('input',event=>{if(event.target.matches?.('#dashboardTicketsCard .dashboard-ticket-search-v14,.ticket-modal #discount,.ticket-modal #ticketDiscount'))requestAnimationFrame(enforce)},true);
+document.addEventListener('DOMContentLoaded',()=>setTimeout(enforce,500),{once:true});
+setInterval(enforce,500);
+})();
+</script>
+<style id="sphera-stable-role-menu-v20-style">
+body.sphera-v21-no-warranties #menuWarranties{display:none!important;visibility:hidden!important;pointer-events:none!important}
+</style>
+<script id="sphera-stable-role-menu-v20-script">
+(function(){
+'use strict';
+const KEY='sphera_warranty_tickets_v1',COLLECTION='warrantyTickets';
+const text=value=>String(value??'').trim();
+const clean=value=>text(value).toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+const user=()=>{try{return window.currentUser||(typeof currentUser!=='undefined'?currentUser:{})||{}}catch(_){return window.currentUser||{}}};
+function access(){const account=user(),values=[account.permissionTemplate,account.permission_template,account.role,account.accountType,account.type].map(clean);return values.some(value=>['admin','administrator','warranty','operator garantii','operator garantii custom','operator-garantii'].includes(value))}
+function syncMenu(){const allowed=access(),menu=document.getElementById('menuWarranties'),body=document.body;if(!body)return;body.classList.toggle('sphera-v21-no-warranties',!allowed);if(allowed){body.classList.remove('sphera-standard-operator','sphera-v18-hide-warranties','sphera-no-warranty-page','sphera-no-warranty-header','sphera-master-no-warranty','sphera-v20-no-warranties');if(menu){menu.hidden=false;menu.removeAttribute('aria-hidden');menu.classList.remove('hide');menu.style.setProperty('display','inline-flex','important');menu.style.setProperty('visibility','visible','important');menu.style.setProperty('pointer-events','auto','important')}}else{if(menu){menu.hidden=true;menu.setAttribute('aria-hidden','true');menu.classList.add('hide');menu.style.setProperty('display','none','important');menu.style.setProperty('visibility','hidden','important');menu.style.setProperty('pointer-events','none','important')}const page=document.getElementById('warrantiesPage');if(page&&!page.classList.contains('hide')){page.classList.add('hide');document.getElementById('dashboard')?.classList.remove('hide')}}}
+window.SPHERA_SYNC_WARRANTY_MENU=syncMenu;
+function tickets(){try{const list=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(list)?list:[]}catch(_){return[]}}
+function existing(orderId,list=tickets()){return list.find(ticket=>text(ticket.orderId)===text(orderId)&&clean(ticket.status)!=='cancelled')}
+function cache(ticket){if(!ticket)return;const list=tickets(),index=list.findIndex(item=>text(item.id)===text(ticket.id));if(index>=0)list[index]={...list[index],...ticket};else list.unshift(ticket);localStorage.setItem(KEY,JSON.stringify(list));document.dispatchEvent(new CustomEvent('sphera:tickets-updated'))}
+const pending=new Set();
+function installTicketGuard(){const base=window.SPHERA_openWarrantyRequest;if(typeof base!=='function'||base.__v20Single)return;async function guarded(orderId){const id=text(orderId),found=existing(id);if(found){window.SPHERA_viewWarrantyTicket?.(found.id);return}if(!id||pending.has(id))return;pending.add(id);try{if(window.SPHERA_DB){const snapshot=await window.SPHERA_DB.collection(COLLECTION).where('orderId','==',id).limit(5).get(),remote=snapshot.docs.map(doc=>({id:doc.id,...doc.data()})).find(ticket=>clean(ticket.status)!=='cancelled');if(remote){cache(remote);window.SPHERA_viewWarrantyTicket?.(remote.id);pending.delete(id);return}}base.apply(this,arguments);requestAnimationFrame(()=>{const modal=[...document.querySelectorAll('.ticket-modal.modal.open')].pop();if(!modal){pending.delete(id);return}const close=()=>pending.delete(id);modal.querySelector('.cancel')?.addEventListener('click',close,{once:true});const observer=new MutationObserver(()=>{if(!modal.isConnected){close();observer.disconnect()}});observer.observe(document.body,{childList:true})})}catch(error){console.error('SPHERA verificare tichet unic',error);pending.delete(id);base.apply(this,arguments)}}guarded.__v20Single=true;window.SPHERA_openWarrantyRequest=guarded}
+function preventDoubleSubmit(event){const button=event.target.closest?.('.ticket-modal .ok');if(!button||!clean(button.textContent).includes('deschide tichet'))return;if(button.dataset.v20Busy==='1'){event.preventDefault();event.stopImmediatePropagation();return}button.dataset.v20Busy='1';setTimeout(()=>{if(button.isConnected)button.dataset.v20Busy=''},5000)}
+let queued=false;function schedule(){if(queued)return;queued=true;queueMicrotask(()=>{queued=false;syncMenu();installTicketGuard()})}
+function observe(){const header=document.querySelector('header,.topbar,.app-header');if(header&&!header.dataset.v20Observed){header.dataset.v20Observed='1';new MutationObserver(schedule).observe(header,{childList:true,subtree:true,characterData:true})}}
+document.addEventListener('click',preventDoubleSubmit,true);
+document.addEventListener('DOMContentLoaded',()=>{observe();schedule()},{once:true});
+document.addEventListener('sphera:user-ready',schedule);
+window.addEventListener('storage',event=>{if(event.key===KEY)document.dispatchEvent(new CustomEvent('sphera:tickets-updated'))});
+observe();schedule();
+})();
+</script>
