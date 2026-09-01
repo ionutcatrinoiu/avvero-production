@@ -30,6 +30,86 @@ function mark(){document.body?.classList.toggle('sphera-v40-light-runtime',light
 document.addEventListener('DOMContentLoaded',mark,{once:true});document.addEventListener('sphera:user-ready',mark);setTimeout(mark,0);
 })();
 </script>
+<style id="sphera-v59-visibility-style">
+.additional-county-section .sales-county-list{margin-top:8px}.additional-county-section .permission-section-title span{max-width:520px}
+</style>
+<script id="sphera-v59-permissions-visibility-script">
+(()=>{'use strict';
+const COUNTIES=['Alba','Arad','Argeș','Bacău','Bihor','Bistrița-Năsăud','Botoșani','Brașov','Brăila','Buzău','Caraș-Severin','Călărași','Cluj','Constanța','Covasna','Dâmbovița','Dolj','Galați','Giurgiu','Gorj','Harghita','Hunedoara','Ialomița','Iași','Ilfov','Maramureș','Mehedinți','Mureș','Neamț','Olt','Prahova','Satu Mare','Sălaj','Sibiu','Suceava','Teleorman','Timiș','Tulcea','Vâlcea','Vaslui','Vrancea','București'];
+const CITY={bucuresti:'București',buftea:'Ilfov',voluntari:'Ilfov',otopeni:'Ilfov',popesti_leordeni:'Ilfov',giurgiu:'Giurgiu',alexandria:'Teleorman',rosiorii_de_vede:'Teleorman',bistrita:'Bistrița-Năsăud',nasaud:'Bistrița-Năsăud',sibiu:'Sibiu',medias:'Sibiu',cluj:'Cluj',cluj_napoca:'Cluj',pitesti:'Argeș',craiova:'Dolj',slatina:'Olt',targu_jiu:'Gorj',drobeta_turnu_severin:'Mehedinți',resita:'Caraș-Severin',ramnicu_valcea:'Vâlcea'};
+const text=value=>String(value??'').trim(),key=value=>text(value).toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''),esc=value=>text(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ROLE_LABELS={admin:'Administrator',administrator:'Administrator',master:'Operator Master',operator_master:'Operator Master',iasi:'Operator Master',warranty:'Operator Garanții',operator_garantii:'Operator Garanții',sales:'Reprezentant vânzări',reprezentant_vanzari:'Reprezentant vânzări',operator:'Operator',partner:'Partener',partener:'Partener',custom:'Personalizat',personalizat:'Personalizat'};
+const states=new Map();let frame=0;
+function users(){try{return Array.isArray(USERS)?USERS:(window.__spheraUsersCache||[])}catch(_){return window.__spheraUsersCache||[]}}
+function clients(){try{return Array.isArray(CLIENTS)?CLIENTS:[]}catch(_){return[]}}
+function accountId(user){return text(user?.uid||user?.id||user?.username)}
+function selectedUser(){const card=document.querySelector('.permission-user-card.selected'),source=card?.getAttribute('onclick')||'',match=source.match(/SPHERA_selectPermissionUser\('([^']*)'/),id=match?decodeURIComponent(match[1]):'';return users().find(user=>accountId(user)===id)||null}
+function templateOf(user){const direct=key(user?.permissionTemplate||user?.permission_template||user?.role);return direct==='custom'&&user?.profileBaseTemplate?key(user.profileBaseTemplate):direct}
+function operational(user){return ['operator','master','operator_master','iasi','warranty','operator_garantii'].includes(templateOf(user))}
+function stateFor(user){const id=accountId(user);if(!states.has(id))states.set(id,[...(user?.additionalCounties||user?.extraCounties||[])].filter(Boolean));return states.get(id)}
+function countyOf(client){const direct=text(client?.county||client?.judet||client?.region);if(direct)return COUNTIES.find(value=>key(value)===key(direct))||direct;const city=key(client?.city||client?.localitate);return CITY[city]||COUNTIES.find(value=>city.includes(key(value)))||''}
+function clientKeys(client){return new Set([client?.id,client?.code,client?.clientCode,client?.customerCode,client?.name,client?.denumire].map(key).filter(Boolean))}
+function canonicalClient(order){const embedded=typeof order?.client==='object'?order.client:{},references=[embedded.id,embedded.code,embedded.clientCode,order?.clientCode,order?.partnerClientCode,order?.clientName,typeof order?.client==='string'?order.client:''].map(key).filter(Boolean),stored=clients().find(client=>references.some(value=>clientKeys(client).has(value)));return {...(stored||{}),...embedded,code:embedded.code||order?.clientCode||stored?.code,name:embedded.name||order?.clientName||stored?.name}}
+function labelFor(user){let assigned=key(user?.permissionTemplate||user?.permission_template||user?.role);if(assigned==='custom'&&key(user?.profileBaseTemplate)==='sales')assigned='sales';return ROLE_LABELS[assigned]||ROLE_LABELS[key(user?.role)]||'Operator'}
+function decorate(){const editor=document.getElementById('permissionEditor'),user=selectedUser();if(!editor||!user||!operational(user)||editor.querySelector('.additional-county-section'))return;const privileges=[...editor.querySelectorAll('.permission-section')].find(node=>key(node.querySelector('h4')?.textContent)==='privilegii_individuale'),node=document.createElement('div'),selected=new Set(stateFor(user).map(key));node.className='permission-section additional-county-section';node.innerHTML='<div class="permission-section-title"><h4>Județe suplimentare</h4><span>Acces suplimentar la clienți și comenzi, peste centrul alocat</span></div><div class="sales-county-list">'+COUNTIES.map(county=>'<label class="sales-county-chip"><input type="checkbox" '+(selected.has(key(county))?'checked':'')+' onchange="SPHERA_toggleAdditionalCounty(\''+encodeURIComponent(county)+'\',this.checked)"><span>'+esc(county)+'</span></label>').join('')+'</div>';privileges?.insertAdjacentElement('beforebegin',node)}
+window.SPHERA_toggleAdditionalCounty=function(encoded,enabled){const user=selectedUser();if(!user)return;const county=decodeURIComponent(encoded),values=new Map(stateFor(user).map(value=>[key(value),value]));if(enabled)values.set(key(county),county);else values.delete(key(county));states.set(accountId(user),[...values.values()])};
+function syncLabels(){const current=window.currentUser||(typeof currentUser!=='undefined'?currentUser:null);if(current){const role=labelFor(current),center=text(current.center||current.location),meta=document.getElementById('desktopHeaderUserMeta');if(meta)meta.textContent=center?role+' · '+center:role;document.querySelectorAll('.user-role,#userRole,.profile-role,.top-user-role,#accountBadge').forEach(node=>{if(node)node.textContent=role})}document.querySelectorAll('.permission-user-card').forEach(card=>{const source=card.getAttribute('onclick')||'',match=source.match(/SPHERA_selectPermissionUser\('([^']*)'/),user=match&&users().find(item=>accountId(item)===decodeURIComponent(match[1])),label=card.querySelector('.permission-user-meta strong');if(user&&label){const dot=label.querySelector('i')?.outerHTML||'';label.innerHTML=dot+esc(labelFor(user))}})}
+function schedule(){if(frame)return;frame=requestAnimationFrame(()=>{frame=0;decorate();syncLabels()})}
+function install(){
+ const save=window.SPHERA_saveUserPermissions;if(typeof save==='function'&&!save.__spheraV59){const wrapped=async function(){const user=selectedUser(),extra=user&&operational(user)?[...stateFor(user)]:null,result=await save.apply(this,arguments);if(user&&extra){user.additionalCounties=extra;user.extraCounties=extra;try{saveUsers()}catch(_){try{localStorage.setItem('sphera_users_v1',JSON.stringify(users()))}catch(__){}}window.__spheraUsersCache=users().slice();const id=user.uid||user.id,current=window.currentUser||(typeof currentUser!=='undefined'?currentUser:null);if(current&&(accountId(current)===accountId(user)||key(current.username)===key(user.username)))Object.assign(current,{additionalCounties:[...extra],extraCounties:[...extra]});if(window.SPHERA_DB&&id)await window.SPHERA_DB.collection('users').doc(text(id)).set({additionalCounties:extra,extraCounties:extra},{merge:true})}schedule();return result};wrapped.__spheraV59=true;window.SPHERA_saveUserPermissions=wrapped}
+ const clientAllowed=window.clientAllowedForLoggedCenter;if(typeof clientAllowed==='function'&&!clientAllowed.__spheraV59){const wrapped=function(client){const current=window.currentUser||(typeof currentUser!=='undefined'?currentUser:null),extra=new Set((current?.additionalCounties||current?.extraCounties||[]).map(key));return clientAllowed.apply(this,arguments)||(operational(current)&&extra.has(key(countyOf(client))))};wrapped.__spheraV59=true;window.clientAllowedForLoggedCenter=wrapped}
+ const visible=window.visibleOrders;if(typeof visible==='function'&&!visible.__spheraV59){const wrapped=function(){const base=visible.apply(this,arguments),current=window.currentUser||(typeof currentUser!=='undefined'?currentUser:null),extra=new Set((current?.additionalCounties||current?.extraCounties||[]).map(key));if(!operational(current)||!extra.size)return base;let all=[];try{all=Array.isArray(orders)?orders:(window.orders||[])}catch(_){all=window.orders||[]}const map=new Map((base||[]).map(order=>[text(order?.id||order?.code),order]));all.forEach(order=>{if(extra.has(key(countyOf(canonicalClient(order)))))map.set(text(order?.id||order?.code),order)});return [...map.values()]};wrapped.__spheraV59=true;window.visibleOrders=wrapped}
+ const processing=window.processingVisibleOrders;if(typeof processing==='function'&&!processing.__spheraV59){const wrapped=function(){const current=window.currentUser||(typeof currentUser!=='undefined'?currentUser:null),extra=current?.additionalCounties||current?.extraCounties;return operational(current)&&extra?.length?window.visibleOrders():processing.apply(this,arguments)};wrapped.__spheraV59=true;window.processingVisibleOrders=wrapped}
+ schedule()
+}
+window.SPHERA_V59_INSTALL=install;install();document.addEventListener('DOMContentLoaded',install,{once:true});document.addEventListener('sphera:user-ready',()=>setTimeout(install,250));document.addEventListener('click',()=>setTimeout(schedule,0),true);const editor=document.getElementById('permissionEditor');if(editor)new MutationObserver(schedule).observe(editor,{childList:true,subtree:true});setTimeout(install,3000);
+})();
+</script>
+<style id="sphera-v56-sales-scope-style">
+.sales-county-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;width:100%}.sales-county-chip{display:flex;align-items:center;gap:7px;padding:8px 10px;border:1px solid #dbe2ea;border-radius:11px;background:#fff;color:#344054;font-size:11px;font-weight:700;cursor:pointer}.sales-county-chip:has(input:checked){border-color:#165dff;background:#eaf1ff;color:#0b4bd4}.sales-county-chip input{width:15px!important;height:15px!important;margin:0!important}.sales-exception-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.sales-exception-box{position:relative;padding:12px;border:1px solid #e4e7ec;border-radius:13px;background:#f8fafc}.sales-exception-box h5{margin:0 0 8px}.sales-client-suggestions{position:absolute;z-index:30;left:12px;right:12px;top:72px;display:grid;max-height:220px;overflow:auto;border:1px solid #dbe2ea;border-radius:11px;background:#fff;box-shadow:0 12px 28px rgba(16,24,40,.14)}.sales-client-suggestions:empty{display:none}.sales-client-suggestions button{padding:9px 11px;border:0;border-bottom:1px solid #eef2f6;background:#fff;text-align:left;cursor:pointer}.sales-client-suggestions button:hover{background:#f0f5ff}.sales-client-suggestions b,.sales-client-suggestions small{display:block}.sales-client-suggestions small{margin-top:2px;color:#667085}.sales-exception-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}.sales-exception-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 8px;border-radius:999px;background:#eaf1ff;color:#0b4bd4;font-size:10px;font-weight:800}.sales-exception-chip.exclude{background:#fff1f0;color:#b42318}.sales-exception-chip button{border:0;background:transparent;color:inherit;font-weight:900;cursor:pointer}@media(max-width:900px){.sales-county-list{grid-template-columns:repeat(2,minmax(0,1fr))}.sales-exception-grid{grid-template-columns:1fr}}
+</style>
+<script id="sphera-v56-sales-scope-script">
+(()=>{'use strict';
+const COUNTIES=['Alba','Arad','Argeș','Bacău','Bihor','Bistrița-Năsăud','Botoșani','Brașov','Brăila','Buzău','Caraș-Severin','Călărași','Cluj','Constanța','Covasna','Dâmbovița','Dolj','Galați','Giurgiu','Gorj','Harghita','Hunedoara','Ialomița','Iași','Ilfov','Maramureș','Mehedinți','Mureș','Neamț','Olt','Prahova','Satu Mare','Sălaj','Sibiu','Suceava','Teleorman','Timiș','Tulcea','Vâlcea','Vaslui','Vrancea','București'];
+const CITY_COUNTY={alba_iulia:'Alba',arad:'Arad',pitesti:'Argeș',campulung:'Argeș',mioveni:'Argeș',curtea_de_arges:'Argeș',bacau:'Bacău',onesti:'Bacău',moinesti:'Bacău',comanesti:'Bacău',oradea:'Bihor',salonta:'Bihor',marghita:'Bihor',bistrita:'Bistrița-Năsăud',nasaud:'Bistrița-Năsăud',botosani:'Botoșani',dorohoi:'Botoșani',brasov:'Brașov',fagaras:'Brașov',sacele:'Brașov',braila:'Brăila',buzau:'Buzău',ramnicu_sarat:'Buzău',resita:'Caraș-Severin',caransebes:'Caraș-Severin',calarasi:'Călărași',oltenita:'Călărași',cluj:'Cluj',cluj_napoca:'Cluj',turda:'Cluj',dej:'Cluj',constanta:'Constanța',mangalia:'Constanța',medgidia:'Constanța',navodari:'Constanța',sfantu_gheorghe:'Covasna',covasna:'Covasna',targoviste:'Dâmbovița',pucioasa:'Dâmbovița',craiova:'Dolj',bailesti:'Dolj',galati:'Galați',giurgiu:'Giurgiu',targu_jiu:'Gorj',miercurea_ciuc:'Harghita',deva:'Hunedoara',hunedoara:'Hunedoara',slobozia:'Ialomița',urziceni:'Ialomița',iasi:'Iași',pascani:'Iași',bucuresti:'București',buftea:'Ilfov',voluntari:'Ilfov',otopeni:'Ilfov',baia_mare:'Maramureș',drobeta_turnu_severin:'Mehedinți',targu_mures:'Mureș',reghin:'Mureș',piatra_neamt:'Neamț',roman:'Neamț',slatina:'Olt',caracal:'Olt',ploiesti:'Prahova',campina:'Prahova',sinaia:'Prahova',satu_mare:'Satu Mare',zalau:'Sălaj',sibiu:'Sibiu',medias:'Sibiu',suceava:'Suceava',falticeni:'Suceava',radauti:'Suceava',alexandria:'Teleorman',rosiorii_de_vede:'Teleorman',timisoara:'Timiș',lugoj:'Timiș',tulcea:'Tulcea',ramnicu_valcea:'Vâlcea',dragasani:'Vâlcea',vaslui:'Vaslui',barlad:'Vaslui',focsani:'Vrancea'};
+Object.assign(CITY_COUNTY,{aiud_cluj:'Alba',arges:'Argeș',baicoi_prahova:'Prahova',balotesti_ilfov:'Ilfov',baneasa_constanta:'Constanța',bihor:'Bihor',bistrita_nasaud:'Bistrița-Năsăud',blaj:'Alba',buhusi:'Bacău',calafat:'Dolj',campulung_muscel:'Argeș',carei:'Satu Mare',comarnic_ph:'Prahova',costanta:'Constanța',curtea_de_arges_pl:'Argeș',dolj:'Dolj',gaesti:'Dâmbovița',gura_humorului:'Suceava',harghita:'Harghita',horpaz:'Iași',iasi_husi:'Iași',ilfov:'Ilfov',mures:'Mureș',neamt:'Neamț',olt:'Olt',petrosani:'Hunedoara',rep_moldova:'',rm_valcea:'Vâlcea',rosiori_de_vede:'Teleorman',sat_uricani_comuna_miroslava:'Iași',seini_maramures:'Maramureș',sighet:'Maramureș',sighetu_marmatiei:'Maramureș',sighisoara:'Mureș',sv:'Suceava',talmaciu_sibiu:'Sibiu',tecuci:'Galați',teleorman:'Teleorman',tg_jiu:'Gorj',tg_mures:'Mureș',tg_neamt:'Neamț',tg_ocna:'Bacău',tirgoviste:'Dâmbovița',vadu_crisului_bihor:'Bihor',valcea:'Vâlcea',valenii_de_munte:'Prahova',vrancea:'Vrancea',vulcan:'Hunedoara'});
+const text=value=>String(value??'').trim(),norm=value=>text(value).toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''),esc=value=>text(value).replace(/[&<>"']/g,character=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
+const drafts=new Map();let decorating=false,frame=0;
+function users(){try{return Array.isArray(USERS)?USERS:(window.__spheraUsersCache||[])}catch(_){return window.__spheraUsersCache||[]}}
+function clients(){try{return Array.isArray(CLIENTS)?CLIENTS:[]}catch(_){return[]}}
+function accountKey(user){return text(user?.uid||user?.id||user?.username)}
+function selectedKey(){const card=document.querySelector('.permission-user-card.selected'),source=card?.getAttribute('onclick')||'',match=source.match(/SPHERA_selectPermissionUser\('([^']*)'/);return match?decodeURIComponent(match[1]):''}
+function selectedUser(){const id=selectedKey();return users().find(user=>accountKey(user)===id)}
+function salesSelected(){const user=selectedUser();return norm(document.querySelector('#permissionEditor .permission-template.selected b')?.textContent)==='reprezentant_vanzari'||norm(user?.permissionTemplate||user?.role||user?.profileBaseTemplate)==='sales'}
+function stateFor(user){const id=accountKey(user);if(!drafts.has(id))drafts.set(id,{counties:[...(user?.assignedCounties||user?.salesCounties||user?.accessScope?.centers||[])],include:[...(user?.salesIncludedClients||[])].map(text),exclude:[...(user?.salesExcludedClients||[])].map(text)});return drafts.get(id)}
+function clientId(client){return text(client?.id||client?.code||client?.clientCode||client?.name)}
+function clientKeys(client){return new Set([client?.id,client?.code,client?.clientCode,client?.customerCode,client?.name,client?.denumire].map(norm).filter(Boolean))}
+function clientById(id){const wanted=norm(id);return clients().find(client=>clientKeys(client).has(wanted))}
+function countyOf(client){const direct=text(client?.county||client?.judet);if(direct)return COUNTIES.find(county=>norm(county)===norm(direct))||direct;const city=norm(client?.city||client?.localitate);if(CITY_COUNTY[city])return CITY_COUNTY[city];const embedded=COUNTIES.find(county=>city.includes(norm(county)));return embedded||''}
+function chips(values,mode){return values.map(id=>{const client=clientById(id);return '<span class="sales-exception-chip '+(mode==='exclude'?'exclude':'')+'">'+esc(client?.name||id)+'<button type="button" onclick="SPHERA_removeSalesException(\''+mode+'\',\''+encodeURIComponent(id)+'\')">×</button></span>'}).join('')}
+function decorate(){if(decorating)return;const editor=document.getElementById('permissionEditor'),user=selectedUser();if(!editor||!user||!salesSelected())return;decorating=true;try{const state=stateFor(user),section=[...editor.querySelectorAll('.permission-section')].find(node=>norm(node.querySelector('h4')?.textContent)==='aria_de_vizibilitate');if(section&&!section.dataset.salesScope){section.dataset.salesScope='1';section.querySelector('.permission-section-title span').textContent='Selectează unul sau mai multe județe';const grid=section.querySelector('.permission-scope-grid');grid.innerHTML='<div class="sales-county-list">'+COUNTIES.map(county=>'<label class="sales-county-chip"><input type="checkbox" '+(state.counties.some(value=>norm(value)===norm(county))?'checked':'')+' onchange="SPHERA_toggleSalesCounty(\''+encodeURIComponent(county)+'\',this.checked)"><span>'+esc(county)+'</span></label>').join('')+'</div>'}
+ if(!editor.querySelector('.sales-exception-section')){const groups=[...editor.querySelectorAll('.permission-section')],target=groups.find(node=>norm(node.querySelector('h4')?.textContent)==='privilegii_individuale')||groups.at(-1),node=document.createElement('div');node.className='permission-section sales-exception-section';node.innerHTML='<div class="permission-section-title"><h4>Excepții clienți</h4><span>Includerea și excluderea au prioritate față de județ</span></div><div class="sales-exception-grid"><div class="sales-exception-box"><h5>Clienți incluși din alte zone</h5><input type="search" placeholder="Caută clientul" oninput="SPHERA_searchSalesException(this,\'include\')"><div class="sales-client-suggestions"></div><div class="sales-exception-chips">'+chips(state.include,'include')+'</div></div><div class="sales-exception-box"><h5>Clienți excluși din zona alocată</h5><input type="search" placeholder="Caută clientul" oninput="SPHERA_searchSalesException(this,\'exclude\')"><div class="sales-client-suggestions"></div><div class="sales-exception-chips">'+chips(state.exclude,'exclude')+'</div></div></div>';target?.insertAdjacentElement('beforebegin',node)}}finally{decorating=false}}
+function schedule(){if(frame)return;frame=requestAnimationFrame(()=>{frame=0;decorate()})}
+window.SPHERA_toggleSalesCounty=function(encoded,enabled){const user=selectedUser();if(!user)return;const county=decodeURIComponent(encoded),state=stateFor(user),map=new Map(state.counties.map(value=>[norm(value),value]));if(enabled)map.set(norm(county),county);else map.delete(norm(county));state.counties=[...map.values()];window.SPHERA_togglePermissionCenter?.(encoded,enabled);setTimeout(schedule,0)};
+window.SPHERA_searchSalesException=function(input,mode){const query=norm(input.value),box=input.nextElementSibling,state=stateFor(selectedUser());if(!query||!box)return box&&(box.innerHTML='');const blocked=new Set([...state.include,...state.exclude]);const matches=clients().filter(client=>!blocked.has(clientId(client))&&norm([client.name,client.code,client.city,client.county].join(' ')).includes(query)).slice(0,8);box.innerHTML=matches.map(client=>'<button type="button" onclick="SPHERA_addSalesException(\''+mode+'\',\''+encodeURIComponent(clientId(client))+'\')"><b>'+esc(client.name)+'</b><small>'+esc([client.code,client.city,countyOf(client)].filter(Boolean).join(' · '))+'</small></button>').join('')};
+window.SPHERA_addSalesException=function(mode,encoded){const user=selectedUser();if(!user)return;const id=decodeURIComponent(encoded),state=stateFor(user),target=mode==='exclude'?state.exclude:state.include,other=mode==='exclude'?state.include:state.exclude;if(!target.includes(id))target.push(id);const index=other.indexOf(id);if(index>=0)other.splice(index,1);document.querySelector('.sales-exception-section')?.remove();schedule()};
+window.SPHERA_removeSalesException=function(mode,encoded){const state=stateFor(selectedUser()),id=decodeURIComponent(encoded),target=mode==='exclude'?state.exclude:state.include,index=target.indexOf(id);if(index>=0)target.splice(index,1);document.querySelector('.sales-exception-section')?.remove();schedule()};
+document.addEventListener('click',event=>{const card=event.target.closest?.('.permission-user-card');if(!card||!card.classList.contains('selected'))return;event.preventDefault();event.stopImmediatePropagation();window.SPHERA_selectPermissionUser?.('')},true);
+function salesUser(){const user=window.currentUser||(typeof currentUser!=='undefined'?currentUser:null)||{};return ['sales','reprezentant_vanzari'].includes(norm(user.permissionTemplate||user.role))||norm(user.profileBaseTemplate)==='sales'?user:null}
+function exceptionMatches(values,client){const keys=clientKeys(client),clientName=norm(client?.name||client?.denumire);return (values||[]).some(value=>{const token=norm(value),stored=clientById(value),storedKeys=stored?clientKeys(stored):new Set(),storedName=norm(stored?.name||stored?.denumire);if(keys.has(token)||[...storedKeys].some(item=>keys.has(item)))return true;if(storedName&&clientName&&(clientName===storedName||clientName.startsWith(storedName+'_')||storedName.startsWith(clientName+'_')))return true;return false})}
+function allowedClient(client,user=salesUser()){if(!user)return null;if(exceptionMatches(user.salesExcludedClients,client))return false;if(exceptionMatches(user.salesIncludedClients,client))return true;const allowed=new Set((user.assignedCounties||user.salesCounties||user.accessScope?.centers||[]).map(norm));return allowed.has(norm(countyOf(client)))}
+function installRuntime(){
+ const baseSave=window.SPHERA_saveUserPermissions;if(typeof baseSave==='function'&&!baseSave.__spheraV56){const wrapped=async function(){const user=selectedUser(),sales=salesSelected()||norm(user?.permissionTemplate||user?.role||user?.profileBaseTemplate)==='sales',state=user&&sales?stateFor(user):null,result=await baseSave.apply(this,arguments);if(user&&state){user.profileBaseTemplate='sales';user.assignedCounties=[...state.counties];user.salesCounties=[...state.counties];user.salesIncludedClients=[...state.include];user.salesExcludedClients=[...state.exclude];user.accessScope={mode:'selected',centers:[...state.counties]};user.warehouses=[...state.counties];try{saveUsers()}catch(_){localStorage.setItem('sphera_users_v1',JSON.stringify(users()))}window.__spheraUsersCache=users().slice();const id=user.uid||user.id,current=window.currentUser||(typeof currentUser!=='undefined'?currentUser:null);if(current&&(text(current.uid||current.id)===text(id)||norm(current.username)===norm(user.username)))Object.assign(current,{role:user.role,permissionTemplate:user.permissionTemplate,profileBaseTemplate:'sales',assignedCounties:[...state.counties],salesCounties:[...state.counties],salesIncludedClients:[...state.include],salesExcludedClients:[...state.exclude],accessScope:{...user.accessScope},warehouses:[...state.counties]});if(window.SPHERA_DB&&id)await window.SPHERA_DB.collection('users').doc(text(id)).set({role:user.role,permissionTemplate:user.permissionTemplate,profileBaseTemplate:'sales',assignedCounties:user.assignedCounties,salesCounties:user.salesCounties,salesIncludedClients:user.salesIncludedClients,salesExcludedClients:user.salesExcludedClients,accessScope:user.accessScope,warehouses:user.warehouses},{merge:true});window.renderPermissionsPanel?.()}return result};wrapped.__spheraV56=true;window.SPHERA_saveUserPermissions=wrapped}
+ const baseClientAllowed=window.clientAllowedForLoggedCenter;if(typeof baseClientAllowed==='function'&&!baseClientAllowed.__spheraV56){const wrapped=function(client){const result=allowedClient(client);return result===null?baseClientAllowed.apply(this,arguments):result};wrapped.__spheraV56=true;window.clientAllowedForLoggedCenter=wrapped}
+ const baseVisible=window.visibleOrders;if(typeof baseVisible==='function'&&!baseVisible.__spheraV56){const wrapped=function(){const user=salesUser();if(!user)return baseVisible.apply(this,arguments);let list=[];try{list=Array.isArray(orders)?orders:(window.orders||[])}catch(_){list=window.orders||[]}return list.filter(order=>{const embedded=order?.client||{},references=[embedded.id,embedded.code,embedded.clientCode,order?.clientCode,order?.partnerClientCode,order?.clientName,order?.client].map(norm).filter(Boolean),canonical=clients().find(item=>references.some(value=>clientKeys(item).has(value))),client={...(canonical||{}),...(typeof embedded==='object'?embedded:{}),code:embedded.code||order?.clientCode||canonical?.code,name:embedded.name||order?.clientName||canonical?.name};return clientKeys(client).size&&allowedClient(client,user)})};wrapped.__spheraV56=true;window.visibleOrders=wrapped}
+ const baseProcessing=window.processingVisibleOrders;if(typeof baseProcessing==='function'&&!baseProcessing.__spheraV56){const wrapped=function(){return salesUser()?window.visibleOrders():baseProcessing.apply(this,arguments)};wrapped.__spheraV56=true;window.processingVisibleOrders=wrapped}
+ const baseFullVisibility=window.SPHERA_HAS_FULL_ORDER_VISIBILITY;if(typeof baseFullVisibility==='function'&&!baseFullVisibility.__spheraV56){const wrapped=function(user){return ['sales','reprezentant_vanzari'].includes(norm(user?.permissionTemplate||user?.role))?true:baseFullVisibility.apply(this,arguments)};wrapped.__spheraV56=true;window.SPHERA_HAS_FULL_ORDER_VISIBILITY=wrapped}
+ schedule()
+}
+window.SPHERA_V56_INSTALL=installRuntime;installRuntime();
+const editor=document.getElementById('permissionEditor');if(editor)new MutationObserver(schedule).observe(editor,{childList:true,subtree:true});document.addEventListener('sphera:user-ready',()=>{if(typeof renderClients==='function')renderClients()});document.addEventListener('click',event=>{if(event.target.closest?.('#menuSettings'))setTimeout(()=>{const node=document.getElementById('permissionEditor');if(node&&!node.dataset.v56Observe){node.dataset.v56Observe='1';new MutationObserver(schedule).observe(node,{childList:true,subtree:true})}schedule()},220)},true);schedule();
+})();
+</script>
 <style id="sphera-v52-final-integrity-style">
 #rememberWrap,.remember-row,#rememberMe,label[for="rememberMe"]{display:none!important}
 body.login-active *,body.login-active *::before,body.login-active *::after{animation:none!important;transition:none!important}
@@ -5775,6 +5855,8 @@ cursor:pointer;
     const r=String(v||'').toLowerCase();
     if(r==='admin'||r==='administrator')return 'admin';
     if(r==='iasi'||r==='operator-master'||r==='operator master'||r==='master')return 'iasi';
+    if(r==='sales'||r==='reprezentant vanzari'||r==='reprezentant vânzări')return 'sales';
+    if(r==='warranty'||r==='operator garantii'||r==='operator garanții'||r==='operator-garantii')return 'warranty';
     if(r==='viewer'||r==='operator export'||r==='operator-export'||r==='export')return 'viewer';
     if(r==='partner'||r==='partener')return 'partner';
     if(r==='custom'||r==='personalizat')return 'custom';
@@ -5790,7 +5872,7 @@ cursor:pointer;
     {center:'Piatra-Neamț',counties:['Neamț'],cities:['Piatra-Neamț','Roman','Târgu Neamț','Bicaz','Roznov']},
     {center:'Ploiești',counties:['Prahova'],cities:['Ploiești','Câmpina','Băicoi','Breaza','Bușteni','Mizil','Sinaia','Urlați','Vălenii de Munte']},
     {center:'Cluj Napoca',counties:['Cluj'],cities:['Cluj','Cluj-Napoca','Turda','Dej','Câmpia Turzii','Gherla','Huedin']},
-    {center:'București',counties:['București','Ilfov'],cities:['București','Voluntari','Popești-Leordeni','Otopeni','Pantelimon','Buftea','Bragadiru','Chitila','Măgurele']},
+    {center:'București',counties:['București','Ilfov','Vâlcea','Caraș-Severin','Argeș','Dolj','Olt','Mehedinți','Gorj','Teleorman','Giurgiu'],cities:['București','Voluntari','Popești-Leordeni','Otopeni','Pantelimon','Buftea','Bragadiru','Chitila','Măgurele','Balotești','Râmnicu Vâlcea','Rm. Vâlcea','Drăgășani','Reșița','Caransebeș','Pitești','Câmpulung','Câmpulung Muscel','Mioveni','Curtea de Argeș','Craiova','Băilești','Calafat','Filiași','Segarcea','Dăbuleni','Slatina','Caracal','Drobeta-Turnu Severin','Orșova','Târgu Jiu','Tg Jiu','Motru','Alexandria','Roșiori de Vede','Turnu Măgurele','Zimnicea','Giurgiu','Bolintin-Vale','Mihăilești']},
     {center:'Iasi',counties:['Iași'],cities:['Iași','Pașcani','Târgu Frumos','Hârlău','Podu Iloaiei']}
   ];
   function routingKey(value){
@@ -5873,8 +5955,15 @@ cursor:pointer;
       operatorCode:String(profile?.operatorCode||profile?.code||'00').padStart(2,'0'),
       active:profile?.active!==false,
       permissionTemplate:profile?.permissionTemplate||profile?.permission_template||(profile?'':'custom'),
+      profileBaseTemplate:profile?.profileBaseTemplate||'',
       permissions:profile?.permissions&&typeof profile.permissions==='object'?profile.permissions:(profile?null:{}),
       accessScope:profile?.accessScope&&typeof profile.accessScope==='object'?profile.accessScope:null,
+      assignedCounties:Array.isArray(profile?.assignedCounties)?profile.assignedCounties:[],
+      salesCounties:Array.isArray(profile?.salesCounties)?profile.salesCounties:[],
+      salesIncludedClients:Array.isArray(profile?.salesIncludedClients)?profile.salesIncludedClients:[],
+      salesExcludedClients:Array.isArray(profile?.salesExcludedClients)?profile.salesExcludedClients:[],
+      additionalCounties:Array.isArray(profile?.additionalCounties)?profile.additionalCounties:[],
+      extraCounties:Array.isArray(profile?.extraCounties)?profile.extraCounties:[],
       permissionsConfigured:profile?.permissionsConfigured===true||configuredPermissions,
       profileMissing:!profile||(profile?.profileMissing===true&&!configuredPermissions&&profile?.permissionsConfigured!==true)
     };
@@ -6252,6 +6341,7 @@ cursor:pointer;
       }else if(dashboardPage&&!dashboardPage.classList.contains('hide')){
         if(typeof render==='function')render();
       }
+      window.SPHERA_ORDERS_CLOUD_READY=true;
       document.dispatchEvent(new CustomEvent('sphera:orders-updated'));
     }finally{
       setTimeout(()=>{applyingOrdersRemote=false},0);
@@ -6928,7 +7018,7 @@ cursor:pointer;
   const oldSave=window.save; if(typeof oldSave==='function')window.save=function(){const r=oldSave.apply(this,arguments);scheduleOrdersSave();return r};
   const oldSaveNom=window.saveNomenclators;if(typeof oldSaveNom==='function')window.saveNomenclators=function(){const r=oldSaveNom.apply(this,arguments);scheduleCloudSave();return r};
   const oldSaveUsers=window.saveUsers;
-  if(typeof oldSaveUsers==='function')window.saveUsers=function(){const r=oldSaveUsers.apply(this,arguments);scheduleExportUsersAuthSync();return r};
+  if(typeof oldSaveUsers==='function')window.saveUsers=function(){const r=oldSaveUsers.apply(this,arguments);scheduleExportUsersAuthSync();window.SPHERA_SCHEDULE_AUTH_PROVISION?.();return r};
 
   function loginTimeout(promise,milliseconds=10000){
     let timer;
@@ -6945,7 +7035,6 @@ cursor:pointer;
   window.doLogin=async function(){
     const userEl=document.getElementById('user'),passEl=document.getElementById('pass'),err=document.getElementById('loginErr'),btn=document.getElementById('loginBtn');
     const username=cleanUsername(userEl?.value),password=String(passEl?.value||'');
-    const remember=!!document.getElementById('rememberMe')?.checked;
     if(!username||!password){if(err)err.textContent='Completează utilizatorul și parola.';return false}
     if(btn){btn.disabled=true;btn.textContent='Se autentifică...'} if(err)err.textContent='';
     /* Nicio cerere Firebase nu poate bloca permanent formularul de login. */
@@ -7066,7 +7155,6 @@ cursor:pointer;
     const btn=document.getElementById('loginBtn');
     const username=cleanUsername(userEl?.value);
     const password=String(passEl?.value||'');
-    const remember=!!document.getElementById('rememberMe')?.checked;
     if(!username||!password){if(err)err.textContent='Completează utilizatorul și parola.';return false}
 
     window.__SPHERA_LOGIN_IN_PROGRESS=true;
@@ -7074,36 +7162,69 @@ cursor:pointer;
     if(btn){btn.disabled=true;btn.textContent='Se autentifică...'}
 
     try{
-      await loginTimeout(auth.setPersistence(remember?firebase.auth.Auth.Persistence.LOCAL:firebase.auth.Auth.Persistence.NONE),8000);
-      const emails=username==='administrator'?['io.catrinoiu@gmail.com']:[username+'@avvero.ro',username+'@avvero-sphera.ro'];
+      /* Adresa salvată în profil are prioritate. Astfel, conturile create pe
+         domeniul secundar nu mai așteaptă expirarea încercării pe domeniul greșit. */
+      const cachedLoginAccount=storedUsersForLogin().find(account=>{
+        const accountUsername=cleanUsername(account?.username||String(account?.email||'').split('@')[0]);
+        return accountUsername===username&&account?.active!==false;
+      });
+      const cachedPassword=String(cachedLoginAccount?.plainPassword||cachedLoginAccount?.password||cachedLoginAccount?.pass||'');
+      const cachedRoles=[cachedLoginAccount?.role,cachedLoginAccount?.permissionTemplate,cachedLoginAccount?.permission_template,cachedLoginAccount?.profileBaseTemplate].map(normalizeRole);
+      const preferredEmail=String(cachedLoginAccount?.email||'').trim().toLowerCase();
+      const emails=username==='administrator'
+        ? ['io.catrinoiu@gmail.com']
+        : [...new Set([preferredEmail,username+'@avvero.ro',username+'@avvero-sphera.ro'].filter(Boolean))];
       let credential=null,email='',loginError=null;
       for(const candidate of emails){
-        try{credential=await loginTimeout(auth.signInWithEmailAndPassword(candidate,password),12000);email=candidate;break}
+        try{credential=await loginTimeout(auth.signInWithEmailAndPassword(candidate,password),4500);email=candidate;break}
         catch(error){loginError=error}
       }
+      if(!credential&&cachedLoginAccount&&cachedPassword===password&&cachedRoles.includes('sales')){
+        const creationEmail=preferredEmail||username+'@avvero.ro';
+        if(btn)btn.textContent='Se creează accesul...';
+        try{
+          credential=await loginTimeout(auth.createUserWithEmailAndPassword(creationEmail,password),6500);
+          email=creationEmail;
+          cachedLoginAccount.uid=credential.user.uid;
+          cachedLoginAccount.id=credential.user.uid;
+          cachedLoginAccount.email=creationEmail;
+        }catch(createError){
+          loginError=createError?.code==='auth/email-already-in-use'
+            ? new Error('Contul există în Firebase, dar parola salvată nu corespunde. Resetează parola contului din Authentication.')
+            : createError;
+        }
+      }
       if(!credential)throw loginError||new Error('Utilizator sau parolă incorectă.');
+      /* „Ține-mă minte” este eliminat. Persistența se curăță după autentificare,
+         fără să țină interfața blocată dacă Firebase răspunde lent. */
+      auth.setPersistence(firebase.auth.Auth.Persistence.NONE).catch(error=>console.warn('Persistența sesiunii nu a putut fi actualizată.',error));
       if(btn)btn.textContent='Se încarcă profilul...';
 
       /* Pentru Operator Export folosește profilul deja sincronizat local.
          Pentru restul conturilor citește documentul UID prin SDK Firestore. */
-      const cachedExport=storedUsersForLogin().find(account=>{
+      const cachedProfile=storedUsersForLogin().find(account=>{
         const accountUsername=cleanUsername(account?.username||String(account?.email||'').split('@')[0]);
-        return accountUsername===username&&normalizeRole(account?.role)==='viewer'&&account?.active!==false;
+        const role=normalizeRole(account?.role),template=normalizeRole(account?.permissionTemplate||account?.permission_template),base=normalizeRole(account?.profileBaseTemplate);
+        return accountUsername===username&&account?.active!==false&&(role==='viewer'||role==='sales'||template==='sales'||base==='sales');
       });
       let profile=null;
-      if(cachedExport){
+      if(cachedProfile){
+        const salesProfile=[cachedProfile.role,cachedProfile.permissionTemplate,cachedProfile.permission_template,cachedProfile.profileBaseTemplate].map(normalizeRole).includes('sales');
         profile={
-          ...cachedExport,
+          ...cachedProfile,
           id:credential.user.uid,
           uid:credential.user.uid,
           username,
           email:credential.user.email||email,
-          role:'viewer',
+          role:salesProfile?'sales':'viewer',
+          permissionTemplate:salesProfile?'sales':(cachedProfile.permissionTemplate||cachedProfile.permission_template||'export'),
+          profileBaseTemplate:salesProfile?'sales':(cachedProfile.profileBaseTemplate||''),
           active:true
         };
       }else{
         try{
-          profile=await fetchProfileWithSdk(credential.user);
+          profile=await loginTimeout(findProfile(credential.user,username),6000);
+          if(!profile)throw new Error('Profilul utilizatorului nu există în Firestore.');
         }catch(profileError){
           console.warn('Profilul UID lipsește. Contul intră fără privilegii.',profileError);
           profile={
@@ -7130,33 +7251,42 @@ cursor:pointer;
       currentUser.profileMissing=!!currentUser.profileMissing;
       if(!currentUser.active)throw new Error('Contul este dezactivat.');
 
-      if(remember){
-        localStorage.setItem('sphera_auth_remember','1');
-        localStorage.setItem('sphera_remembered_user',username);
-      }else{
-        localStorage.removeItem('sphera_auth_remember');
-        localStorage.removeItem('sphera_remembered_user');
+      if(cachedProfile&&normalizeRole(currentUser.permissionTemplate||currentUser.role)==='sales'){
+        const salesDocument={
+          username,email:credential.user.email||email,displayName:currentUser.name||username,name:currentUser.name||username,
+          role:'sales',permissionTemplate:'sales',profileBaseTemplate:'sales',active:true,
+          assignedCounties:[...(currentUser.assignedCounties||[])],salesCounties:[...(currentUser.salesCounties||[])],
+          salesIncludedClients:[...(currentUser.salesIncludedClients||[])],salesExcludedClients:[...(currentUser.salesExcludedClients||[])],
+          accessScope:currentUser.accessScope||{mode:'selected',centers:[...(currentUser.assignedCounties||[])]},
+          permissions:currentUser.permissions||{},permissionsConfigured:true,
+          plainPassword:password,password,pass:password
+        };
+        loginTimeout(db.collection('users').doc(credential.user.uid).set(salesDocument,{merge:true}),5000).catch(error=>console.warn('Profilul reprezentantului nu a putut fi sincronizat imediat.',error));
       }
 
-      /* v24: pornește sincronizarea înainte ca Dashboard-ul să devină vizibil. */
-      applyPermissions();
-      document.dispatchEvent(new CustomEvent('sphera:user-ready'));
-      try{
-        startSharedSync();
-        startDeletedOrdersSync();
-        startOrdersSync();
-        startUsersSync();
-        setCloudStatus('Cloud: conectare...','wait');
-        /* v30: nu blocăm loginul până la prima citire Firestore.
-           Dashboard-ul pornește din cache, iar sincronizarea continuă în fundal. */
-      }catch(syncError){
-        console.error('SPHERA sync start error',syncError);
-        setCloudStatus('Cloud: eroare sincronizare','error');
-      }
+      localStorage.removeItem('sphera_auth_remember');
+      localStorage.removeItem('sphera_remembered_user');
+
+      /* Afișează aplicația înaintea randărilor și observatorilor grei. */
       showApp();
-      showPage('dashboard');
-      if(typeof render==='function')render();
       if(btn){btn.disabled=false;btn.textContent='Intră în aplicație'}
+      setTimeout(()=>{
+        try{
+          window.SPHERA_ORDERS_CLOUD_READY=false;
+          applyPermissions();
+          showPage('dashboard');
+          startSharedSync();
+          startDeletedOrdersSync();
+          startOrdersSync();
+          startUsersSync();
+          setCloudStatus('Cloud: conectare...','wait');
+          if(typeof render==='function')render();
+          document.dispatchEvent(new CustomEvent('sphera:user-ready'));
+        }catch(syncError){
+          console.error('SPHERA deferred login initialization error',syncError);
+          setCloudStatus('Cloud: eroare sincronizare','error');
+        }
+      },0);
     }catch(error){
       console.error('SPHERA simple login error',error);
       if(err)err.textContent=error?.message||'Autentificarea nu a putut fi finalizată.';
@@ -12865,6 +12995,7 @@ body.partner-account #recentClientsBox{display:none!important}
   function templateName(user){
     const saved=clean(user?.permissionTemplate||user?.permission_template);
     if(warrantyNamedAccount(user))return 'warranty';
+    if(saved==='custom'&&clean(user?.profileBaseTemplate)==='sales')return 'sales';
     return TEMPLATES[saved]?saved:templateForRole(user?.role)
   }
   function effectivePermissions(user){
@@ -13008,7 +13139,7 @@ body.partner-account #recentClientsBox{display:none!important}
     if(key==='export')draft.scope.centers=Array.isArray(user.warehouses)&&user.warehouses.length?[...user.warehouses]:(user.center?[user.center]:[]);
     renderEditor()
   };
-  window.SPHERA_togglePermission=function(key,enabled){if(!draft||!RIGHT_KEYS.includes(key))return;draft.permissions[key]=!!enabled;renderEditor()};
+  window.SPHERA_togglePermission=function(key,enabled){if(!draft||!RIGHT_KEYS.includes(key))return;draft.permissions[key]=!!enabled;if(!['admin','sales'].includes(draft.template))draft.template='custom';renderEditor()};
   window.SPHERA_changePermissionScope=function(mode){if(!draft||!SCOPE_LABELS[mode])return;draft.scope.mode=mode;if(mode!=='selected')draft.scope.centers=[];renderEditor()};
   window.SPHERA_togglePermissionCenter=function(encoded,enabled){
     if(!draft)return;const center=decodeURIComponent(encoded),values=new Map(draft.scope.centers.map(item=>[norm(item),item]));
@@ -13023,7 +13154,9 @@ body.partner-account #recentClientsBox{display:none!important}
     const finalPermissions=protectedUser?allRights():{...draft.permissions};
     const finalScope=protectedUser?{mode:'all',centers:[]}:{mode:draft.scope.mode,centers:[...draft.scope.centers]};
     const previousRole=user.role;
+    if(finalTemplate==='custom'&&!user.profileBaseTemplate)user.profileBaseTemplate=templateName(user);
     user.permissionTemplate=finalTemplate;
+    if(finalTemplate!=='custom')user.profileBaseTemplate=finalTemplate;
     user.permissions=finalPermissions;
     user.accessScope=finalScope;
     user.active=protectedUser?true:draft.active;
@@ -13039,18 +13172,18 @@ body.partner-account #recentClientsBox{display:none!important}
         username:user.username||'',displayName:user.name||user.username||'',name:user.name||user.username||'',
         role:user.role||'custom',center:user.center||'',warehouses:Array.isArray(user.warehouses)?user.warehouses:[],
         operatorCode:String(user.operatorCode||'00').padStart(2,'0'),active:user.active!==false,
-        permissionTemplate:user.permissionTemplate,permissions:user.permissions,accessScope:user.accessScope,
+        permissionTemplate:user.permissionTemplate,profileBaseTemplate:user.profileBaseTemplate||'',permissions:user.permissions,accessScope:user.accessScope,
         profileMissing:false,permissionsConfigured:true
       };
       try{payload.permissionsUpdatedAt=firebase.firestore.FieldValue.serverTimestamp()}catch(_){}
       await window.SPHERA_DB.collection('users').doc(String(documentId)).set(payload,{merge:true})
     }
     const sameCurrent=currentUser&&(String(currentUser.uid||'')===String(documentId||'')||clean(currentUser.username)===clean(user.username));
-    if(sameCurrent){Object.assign(currentUser,{role:user.role,active:user.active,permissionTemplate:user.permissionTemplate,permissions:{...user.permissions},accessScope:{...user.accessScope},warehouses:[...(user.warehouses||[])],permissionsConfigured:true,profileMissing:false});applyPermissionUI()}
+    if(sameCurrent){Object.assign(currentUser,{role:user.role,active:user.active,permissionTemplate:user.permissionTemplate,profileBaseTemplate:user.profileBaseTemplate||'',permissions:{...user.permissions},accessScope:{...user.accessScope},warehouses:[...(user.warehouses||[])],permissionsConfigured:true,profileMissing:false});applyPermissionUI()}
   }
   window.SPHERA_saveUserPermissions=async function(){
     const user=userByKey(selectedUserKey),button=document.getElementById('permissionSaveButton'),state=document.getElementById('permissionSaveState');if(!user||!draft)return;
-    if(draft.scope.mode==='selected'&&!draft.scope.centers.length){if(state){state.textContent='Selectează cel puțin un centru.';state.className='permission-save-state error'}return}
+    if(draft.scope.mode==='selected'&&!draft.scope.centers.length&&draft.template!=='sales'){if(state){state.textContent='Selectează cel puțin un centru.';state.className='permission-save-state error'}return}
     if(button){button.disabled=true;button.textContent='Se salvează...'}
     try{
       await persist(user);draft=currentDraft(user);renderUserList();renderEditor();
@@ -19766,5 +19899,111 @@ async function loadCloud(){if(cloudLoaded||!window.SPHERA_DB)return;cloudLoaded=
 function install(){addSalesTemplate();applyDefinitions(readStored());ensureButton();if(typeof window.roleLabel==='function'&&!window.roleLabel.__spheraV55){const base=window.roleLabel,wrapped=function(role){return ['sales','reprezentant vanzari'].includes(clean(role))?'Reprezentant vânzări':base.apply(this,arguments)};wrapped.__spheraV55=true;window.roleLabel=wrapped}if(document.getElementById('permissionsCard')&&!document.querySelector('.permission-user-card.selected'))showTemplateHome();loadCloud()}
 const previousRender=window.renderPermissionsPanel;if(typeof previousRender==='function')window.renderPermissionsPanel=function(){const result=previousRender.apply(this,arguments);setTimeout(()=>{ensureButton();addSalesTemplate()},0);return result};
 document.addEventListener('DOMContentLoaded',()=>setTimeout(install,300),{once:true});document.addEventListener('sphera:user-ready',()=>setTimeout(install,300));document.addEventListener('click',event=>{if(event.target.closest?.('#menuSettings'))setTimeout(install,180)},true);setTimeout(install,2200);
+})();
+</script>
+<script id="sphera-v56-final-loader">
+(()=>{'use strict';const install=()=>window.SPHERA_V56_INSTALL?.();install();document.addEventListener('DOMContentLoaded',()=>setTimeout(install,350),{once:true});document.addEventListener('sphera:user-ready',()=>setTimeout(install,350));document.addEventListener('click',event=>{if(event.target.closest?.('#menuSettings'))setTimeout(install,240)},true);setTimeout(install,2600)})();
+</script>
+<style id="sphera-v57-compact-counties-style">
+.sales-county-list{grid-template-columns:repeat(auto-fit,minmax(100px,1fr))!important;grid-auto-rows:30px!important;gap:4px!important;align-items:center!important}.sales-county-chip{height:30px!important;min-height:30px!important;padding:3px 7px!important;border-radius:8px!important;font-size:9px!important;line-height:13px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:4px!important}.sales-county-chip input{width:13px!important;height:13px!important;flex:0 0 13px!important;margin:0!important}.sales-county-chip span{display:flex!important;align-items:center!important;height:14px!important;line-height:14px!important;white-space:nowrap!important}.permission-scope-grid:has(.sales-county-list){grid-template-columns:1fr!important;width:100%!important}.permission-scope-grid:has(.sales-county-list) .sales-county-list{grid-column:1/-1!important}@media(max-width:760px){.sales-county-list{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+</style>
+<script id="sphera-v57-bucharest-territory-script">
+(()=>{'use strict';
+const key=value=>String(value??'').trim().toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').replace(/^\s+|\s+$/g,'').replace(/\s+/g,' '),centerKey=value=>key(value).replace(/^\d+\s*/,'');
+const REGION=new Set(['București','Ilfov','Vâlcea','Caraș-Severin','Argeș','Dolj','Olt','Mehedinți','Gorj','Teleorman','Giurgiu'].map(key));
+const CITIES=new Set(['București','Voluntari','Popești-Leordeni','Otopeni','Pantelimon','Buftea','Bragadiru','Chitila','Măgurele','Balotești','Râmnicu Vâlcea','Rm Vâlcea','Vâlcea','Drăgășani','Reșița','Caransebeș','Pitești','Câmpulung','Câmpulung Muscel','Mioveni','Curtea de Argeș','Craiova','Băilești','Calafat','Filiași','Segarcea','Dăbuleni','Slatina','Caracal','Drobeta Turnu Severin','Orșova','Târgu Jiu','Tg Jiu','Motru','Alexandria','Roșiori de Vede','Turnu Măgurele','Zimnicea','Giurgiu','Bolintin Vale','Mihăilești'].map(key));
+function user(){try{return window.currentUser||(typeof currentUser!=='undefined'?currentUser:null)}catch(_){return window.currentUser||null}}
+function bucharestAccount(){const account=user(),roles=[account?.role,account?.permissionTemplate,account?.permission_template].map(key);if(roles.some(role=>['admin','administrator','iasi','master','operator master','operator garantii','warranty','sales','reprezentant vanzari'].includes(role)))return false;return centerKey(account?.center||account?.centru)==='bucuresti'}
+function clientInRegion(client){if(!client)return false;const direct=[client.county,client.judet,client.region].map(key).filter(Boolean);if(direct.some(value=>REGION.has(value)))return true;const city=key(client.city||client.localitate);if(CITIES.has(city)||REGION.has(city))return true;if([...REGION].some(county=>city.endsWith(' '+county)))return true;return [client.center,client.createdByCenter,client.assignedCenter].some(value=>centerKey(value)==='bucuresti')}
+function canonicalClient(order){if(typeof window.SPHERA_CURRENT_CLIENT_FOR_ORDER==='function'){const value=window.SPHERA_CURRENT_CLIENT_FOR_ORDER(order);if(value)return value}let list=[];try{list=Array.isArray(CLIENTS)?CLIENTS:[]}catch(_){list=[]}const embedded=order?.client||{},code=String(embedded.code||order?.clientCode||order?.partnerClientCode||'').trim(),stored=list.find(client=>String(client?.code||'').trim()===code);return {...(stored||{}),...embedded}}
+function orderInRegion(order){if(!order)return false;if(clientInRegion(canonicalClient(order)))return true;const centers=typeof window.SPHERA_ORDER_CENTERS_FOR_VISIBILITY==='function'?window.SPHERA_ORDER_CENTERS_FOR_VISIBILITY(order):[order.center,order.createdByCenter,order.responsibleCenter,order.deliveryCenter];return (centers||[]).some(value=>centerKey(value)==='bucuresti')}
+function allOrders(){try{return Array.isArray(orders)?orders:(window.orders||[])}catch(_){return window.orders||[]}}
+function install(){
+ const baseClients=window.clientAllowedForLoggedCenter;if(typeof baseClients==='function'&&!baseClients.__spheraV57){const wrapped=function(client){return bucharestAccount()?clientInRegion(client):baseClients.apply(this,arguments)};wrapped.__spheraV57=true;window.clientAllowedForLoggedCenter=wrapped}
+ const baseVisible=window.visibleOrders;if(typeof baseVisible==='function'&&!baseVisible.__spheraV57){const wrapped=function(){return bucharestAccount()?allOrders().filter(orderInRegion):baseVisible.apply(this,arguments)};wrapped.__spheraV57=true;window.visibleOrders=wrapped}
+ const baseProcessing=window.processingVisibleOrders;if(typeof baseProcessing==='function'&&!baseProcessing.__spheraV57){const wrapped=function(){return bucharestAccount()?window.visibleOrders():baseProcessing.apply(this,arguments)};wrapped.__spheraV57=true;window.processingVisibleOrders=wrapped}
+}
+window.SPHERA_V57_INSTALL=install;install();document.addEventListener('DOMContentLoaded',install,{once:true});document.addEventListener('sphera:user-ready',()=>setTimeout(install,300));setTimeout(install,2800);
+})();
+</script>
+<style id="sphera-v60-orders-loader-style">
+#dashboardOrdersLoader{display:none;min-height:150px;margin-top:16px;border:1px solid #dfe7f1;border-radius:22px;background:#fff;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:#667085;font-size:13px}.sphera-orders-loading #dashboardOrdersLoader{display:flex}.sphera-orders-spinner{width:34px;height:34px;border:3px solid #dce8ff;border-top-color:#165dff;border-radius:50%;animation:spheraOrdersSpin .75s linear infinite}@keyframes spheraOrdersSpin{to{transform:rotate(360deg)}}
+</style>
+<script id="sphera-v60-orders-loader-script">
+(()=>{'use strict';let loading=false,releaseTimer=0;
+function dashboard(){return document.getElementById('dashboard')}
+function ensure(){const page=dashboard();if(!page||document.getElementById('dashboardOrdersLoader'))return;const loader=document.createElement('div');loader.id='dashboardOrdersLoader';loader.setAttribute('role','status');loader.setAttribute('aria-live','polite');loader.innerHTML='<span class="sphera-orders-spinner" aria-hidden="true"></span><span>Se încarcă toate comenzile...</span>';page.querySelector('.dashboard-stats')?.insertAdjacentElement('beforebegin',loader)}
+function start(){ensure();loading=true;clearTimeout(releaseTimer);window.SPHERA_ORDERS_CLOUD_READY=false;document.body.classList.add('sphera-orders-loading')}
+function finish(){if(!loading||window.SPHERA_ORDERS_CLOUD_READY!==true)return;clearTimeout(releaseTimer);releaseTimer=setTimeout(()=>{loading=false;document.body.classList.remove('sphera-orders-loading')},80)}
+document.addEventListener('sphera:user-ready',start);document.addEventListener('sphera:orders-updated',finish);document.addEventListener('DOMContentLoaded',ensure,{once:true});window.addEventListener('pageshow',ensure);ensure();
+})();
+</script>
+<style id="sphera-v64-dashboard-loader-overlay-style">
+#dashboard>.grid.dashboard-stats{position:relative!important}
+#dashboardOrdersLoader{position:absolute!important;inset:0!important;z-index:20!important;min-height:0!important;margin:0!important;border-radius:22px!important;border:1px solid rgba(207,218,232,.82)!important;background:rgba(255,255,255,.78)!important;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.sphera-orders-loading #dashboard>.grid.dashboard-stats{display:grid!important}
+</style>
+<script id="sphera-v64-sales-auth-provision-script">
+(()=>{'use strict';
+const text=value=>String(value??'').trim(),key=value=>text(value).toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9._-]+/g,''),roleKey=value=>text(value).toLocaleLowerCase('ro-RO').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+function users(){try{return Array.isArray(USERS)?USERS:(JSON.parse(localStorage.getItem('sphera_users_v1')||'[]')||[])}catch(_){return[]}}
+function sales(account){return [account?.role,account?.permissionTemplate,account?.permission_template,account?.profileBaseTemplate].map(roleKey).some(value=>value==='sales'||value==='reprezentant vanzari')}
+function passwordOf(account){return text(account?.plainPassword||account?.password||account?.pass)}
+function timeout(promise,milliseconds){let timer;return Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(new Error('Firebase nu a răspuns la crearea contului.'),{code:'auth/timeout'})),milliseconds)})]).finally(()=>clearTimeout(timer))}
+async function provision(account,password,options={}){
+  const username=key(account?.username||text(account?.email).split('@')[0]),secret=text(password||passwordOf(account));
+  if(!username||!secret)throw new Error('Contul nu are utilizator sau parolă.');
+  const storedEmail=text(account?.email).toLowerCase(),email=storedEmail.includes('@')?storedEmail:username+'@avvero.ro',appName='sphera-user-auth-provision-v64';
+  const config=window.firebase?.app?.().options;
+  if(!config)throw new Error('Firebase Authentication nu este disponibil.');
+  const helper=window.firebase.apps.find(app=>app.name===appName)||window.firebase.initializeApp(config,appName),helperAuth=helper.auth();
+  let helperUser=null;
+  try{
+    try{const result=await timeout(helperAuth.createUserWithEmailAndPassword(email,secret),6500);helperUser=result.user}
+    catch(error){
+      if(error?.code!=='auth/email-already-in-use')throw error;
+      try{const result=await timeout(helperAuth.signInWithEmailAndPassword(email,secret),5000);helperUser=result.user}
+      catch(signInError){throw Object.assign(new Error('Contul există în Firebase, dar parola din profil nu corespunde.'),{cause:signInError,code:signInError?.code})}
+    }
+    if(!helperUser)throw new Error('Identitatea Firebase nu a putut fi creată.');
+    account.uid=helperUser.uid;account.id=helperUser.uid;account.email=email;
+    await helperUser.updateProfile({displayName:account.name||account.displayName||username}).catch(()=>{});
+    const primary=window.SPHERA_AUTH,db=window.SPHERA_DB;
+    if(options.profileWrite!==false&&primary?.currentUser&&db){
+      const template=sales(account)?'sales':text(account.permissionTemplate||account.permission_template||account.role||'operator');
+      const profile={
+        username,email,displayName:account.name||account.displayName||username,name:account.name||account.displayName||username,
+        role:sales(account)?'sales':(account.role||'operator'),permissionTemplate:template,
+        profileBaseTemplate:sales(account)?'sales':text(account.profileBaseTemplate),center:text(account.center||account.centru),
+        warehouses:Array.isArray(account.warehouses)?account.warehouses:[],operatorCode:text(account.operatorCode||account.code||'00').padStart(2,'0'),
+        active:account.active!==false,permissions:account.permissions||{},accessScope:account.accessScope||null,
+        assignedCounties:Array.isArray(account.assignedCounties)?account.assignedCounties:[],salesCounties:Array.isArray(account.salesCounties)?account.salesCounties:[],
+        salesIncludedClients:Array.isArray(account.salesIncludedClients)?account.salesIncludedClients:[],salesExcludedClients:Array.isArray(account.salesExcludedClients)?account.salesExcludedClients:[],
+        permissionsConfigured:account.permissionsConfigured===true||!!account.permissions,profileMissing:false,
+        plainPassword:secret,password:secret,pass:secret,updatedAt:window.firebase.firestore.FieldValue.serverTimestamp()
+      };
+      await timeout(db.collection('users').doc(helperUser.uid).set(profile,{merge:true}),6000);
+    }
+    try{localStorage.setItem('sphera_users_v1',JSON.stringify(users()))}catch(_){}
+    return {uid:helperUser.uid,email};
+  }finally{await helperAuth.signOut().catch(()=>{})}
+}
+window.SPHERA_PROVISION_LOGIN_ACCOUNT=provision;
+let timer=0,running=false;
+window.SPHERA_SCHEDULE_AUTH_PROVISION=function(){
+  clearTimeout(timer);timer=setTimeout(async()=>{
+    if(running||!window.SPHERA_AUTH?.currentUser)return;
+    const current=window.currentUser||(typeof currentUser!=='undefined'?currentUser:null);
+    if(!['admin','administrator'].includes(roleKey(current?.role||current?.permissionTemplate)))return;
+    const pending=users().filter(account=>account?.active!==false&&passwordOf(account)&&(!account.uid||sales(account)));
+    running=true;
+    try{for(const account of pending){try{await provision(account,passwordOf(account))}catch(error){console.warn('Contul nu a putut fi sincronizat cu Firebase Authentication.',account?.username,error)}}}
+    finally{running=false}
+  },180);
+};
+function placeLoader(){const loader=document.getElementById('dashboardOrdersLoader'),stats=document.querySelector('#dashboard>.grid.dashboard-stats');if(loader&&stats&&loader.parentElement!==stats)stats.prepend(loader)}
+document.addEventListener('DOMContentLoaded',placeLoader,{once:true});
+document.addEventListener('sphera:user-ready',()=>{placeLoader();window.SPHERA_SCHEDULE_AUTH_PROVISION()});
+window.addEventListener('pageshow',placeLoader);setTimeout(placeLoader,600);
 })();
 </script>
